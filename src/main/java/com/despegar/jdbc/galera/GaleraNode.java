@@ -24,7 +24,6 @@ public class GaleraNode {
         this.poolSettings = poolSettings;
 
         HikariConfig hikariConfig = newHikariConfig(node, galeraDB, poolSettings);
-        hikariConfig.setIdleTimeout(30000);
         statusDataSource = new HikariDataSource(hikariConfig);
     }
 
@@ -42,6 +41,8 @@ public class GaleraNode {
         config.addDataSourceProperty("useServerPrepStmts", "true");
         config.addDataSourceProperty("connectTimeout", String.valueOf(poolSettings.connectTimeout));
         config.addDataSourceProperty("socketTimeout", String.valueOf(poolSettings.readTimeout));
+        config.setIdleTimeout(poolSettings.idleTimeout);
+
         return config;
     }
 

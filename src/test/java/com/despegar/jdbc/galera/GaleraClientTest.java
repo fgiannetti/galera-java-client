@@ -14,7 +14,7 @@ public class GaleraClientTest {
         GaleraClient client = new GaleraClient.Builder().seeds("maria-1.mg10.dev.docker")
                 .database("").user("despegar").password("despegar").discoverPeriod(2000)
                 .connectTimeout(500).connectionTimeout(1000).readTimeout(1000)
-                .maxConnectionsPerHost(1).build();
+                .maxConnectionsPerHost(1).idleTimeout(30000).ignoreDonor(true).retriesToGetConnection(5).build();
 
         Connection connection = null;
         try {

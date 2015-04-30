@@ -20,6 +20,8 @@ public class GaleraClient {
     private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private GaleraDB galeraDB;
     private PoolSettings poolSettings;
+    private DiscoverSettings discoverSettings;
+    private ClientSettings clientSettings;
     private Runnable discoverRunnable = new Runnable() {
         @Override
         public void run() {
@@ -27,11 +29,13 @@ public class GaleraClient {
         }
     };
 
-    private GaleraClient(Collection<String> seeds, long discoverPeriod, GaleraDB galeraDB, PoolSettings poolSettings) {
+    private GaleraClient(ClientSettings clientSettings, DiscoverSettings discoverSettings, GaleraDB galeraDB, PoolSettings poolSettings) {
         this.galeraDB = galeraDB;
         this.poolSettings = poolSettings;
-        registerNodes(seeds);
-        startDiscovery(discoverPeriod);
+        this.discoverSettings = discoverSettings;
+        this.clientSettings = clientSettings;
+        registerNodes(clientSettings.seeds);
+        startDiscovery(discoverSettings.discoverPeriod);
     }
 
     private void discovery() {
@@ -41,6 +45,7 @@ public class GaleraClient {
             testDownedNodes();
             LOG.debug("Active nodes: {},  Downed nodes: {}", activeNodes, downedNodes);
         } catch (Throwable reason) {
+            LOG.error("Galera discovery failed", reason);
         }
     }
 
@@ -116,7 +121,8 @@ public class GaleraClient {
             down(node, "non Primary");
             return;
         }
-        if (!status.isSynced() && !status.isDonor()) {
+
+        if (!status.isSynced() || (status.isDonor() && discoverSettings.ignoreDonor)) {
             down(node, "state not ready: " + status.state());
             return;
         }
@@ -169,7 +175,7 @@ public class GaleraClient {
     }
 
     private GaleraNode nextActiveGaleraNode(int retry) {
-        if (retry <= 3) {
+        if (retry <= clientSettings.retriesToGetConnection) {
             try {
                 GaleraNode galeraNode = nodes.get(activeNodes.get(nextNodeIndex()));
                 return galeraNode != null ? galeraNode : nextActiveGaleraNode(++retry);
@@ -177,6 +183,7 @@ public class GaleraClient {
                 return nextActiveGaleraNode(++retry);
             }
         } else {
+            LOG.error("NoHostAvailableException selecting an active galera node. Max attempts reached");
             throw new NoHostAvailableException();
         }
     }
@@ -184,6 +191,7 @@ public class GaleraClient {
     private int nextNodeIndex() {
         int activeNodesCount = activeNodes.size();
         if (activeNodesCount == 0) {
+            LOG.error("NoHostAvailableException - Active node count is zero");
             throw new NoHostAvailableException();
         }
         return nextNodeIndex.incrementAndGet() % activeNodesCount;
@@ -200,6 +208,9 @@ public class GaleraClient {
         private long connectTimeout;
         private long connectionTimeout;
         private long readTimeout;
+        private long idleTimeout;
+        private boolean ignoreDonor = true;
+        private int retriesToGetConnection = 3;
 
         public Builder seeds(String seeds) {
             this.seeds = seeds;
@@ -245,7 +256,7 @@ public class GaleraClient {
         }
 
         public GaleraClient build() {
-            return new GaleraClient(seeds(), discoverPeriod, new GaleraDB(database, user, password), new PoolSettings(maxConnectionsPerHost, connectTimeout, connectionTimeout, readTimeout));
+            return new GaleraClient(new ClientSettings(seeds(), retriesToGetConnection), new DiscoverSettings(discoverPeriod, ignoreDonor), new GaleraDB(database, user, password), new PoolSettings(maxConnectionsPerHost, connectTimeout, connectionTimeout, readTimeout, idleTimeout));
         }
 
         private ArrayList<String> seeds() {
@@ -263,6 +274,25 @@ public class GaleraClient {
 
         public Builder readTimeout(long timeout) {
             this.readTimeout = timeout;
+            return this;
+        }
+
+        public Builder idleTimeout(long timeout) {
+            this.idleTimeout = timeout;
+            return this;
+        }
+
+        public Builder idleTimeout(long idleTimeout, TimeUnit timeUnit) {
+            return idleTimeout(timeUnit.toMillis(idleTimeout));
+        }
+
+        public Builder ignoreDonor(boolean ignore) {
+            this.ignoreDonor = ignore;
+            return this;
+        }
+
+        public Builder retriesToGetConnection(int retriesToGetConnection) {
+            this.retriesToGetConnection = retriesToGetConnection;
             return this;
         }
 

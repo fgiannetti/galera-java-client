@@ -1,4 +1,4 @@
-package com.despegar.jdbc.galera;
+package com.despegar.jdbc.galera.settings;
 
 public class DiscoverSettings {
     public final long discoverPeriod;

@@ -1,5 +1,6 @@
 package com.despegar.jdbc.galera;
 
+import com.despegar.jdbc.galera.settings.PoolSettings;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
@@ -85,6 +86,10 @@ public class GaleraNode {
 
     public Connection getConnection() throws SQLException {
         return dataSource.getConnection();
+    }
+
+    public Connection getConnection(ConsistencyLevel consistencyLevel) throws Exception {
+        return GaleraProxyConnection.create(dataSource.getConnection(), consistencyLevel, status);
     }
 
     public void onActivate() {

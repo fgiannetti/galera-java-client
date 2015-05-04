@@ -15,7 +15,6 @@ public class GaleraStatus {
         return Arrays.asList(statusMap.get("wsrep_incoming_addresses").split(","));
     }
 
-
     public boolean isPrimary() {
         return statusMap.get("wsrep_cluster_status").equals("Primary");
     }
@@ -31,4 +30,31 @@ public class GaleraStatus {
     public boolean isDonor() {
         return state().equals("Donor/Desynced");
     }
+
+    public boolean supportsSyncWait() {
+        return statusMap.keySet().contains("wsrep_sync_wait");
+    }
+
+    public int getGlobalConsistencyLevel() {
+        Integer syncWait = getInt("wsrep_sync_wait");
+        if (syncWait != null) {
+            return syncWait;
+        }
+
+        // Earlier mariadb versions
+        return getInt("wsrep_causal_reads");
+    }
+
+
+    public int getInt(String variableName) {
+        Integer intValue = null;
+
+        String stringValue = statusMap.get(variableName);
+        if (stringValue != null) {
+            intValue =  Integer.valueOf(stringValue);
+        }
+
+        return intValue;
+    }
+
 }

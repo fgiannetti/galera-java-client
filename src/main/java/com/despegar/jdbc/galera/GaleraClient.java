@@ -1,5 +1,8 @@
 package com.despegar.jdbc.galera;
 
+import com.despegar.jdbc.galera.settings.ClientSettings;
+import com.despegar.jdbc.galera.settings.DiscoverSettings;
+import com.despegar.jdbc.galera.settings.PoolSettings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -172,6 +175,10 @@ public class GaleraClient {
 
     public Connection getConnection() throws SQLException {
         return nextActiveGaleraNode(1).getConnection();
+    }
+
+    public Connection getConnection(ConsistencyLevel consistencyLevel) throws SQLException {
+        return nextActiveGaleraNode(1).getConnection(consistencyLevel);
     }
 
     private GaleraNode nextActiveGaleraNode(int retry) {

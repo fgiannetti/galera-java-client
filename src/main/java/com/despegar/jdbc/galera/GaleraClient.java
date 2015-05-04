@@ -177,7 +177,8 @@ public class GaleraClient {
         return nextActiveGaleraNode(1).getConnection();
     }
 
-    public Connection getConnection(ConsistencyLevel consistencyLevel) throws SQLException {
+    public Connection getConnection(ConsistencyLevel consistencyLevel) throws Exception {
+
         return nextActiveGaleraNode(1).getConnection(consistencyLevel);
     }
 

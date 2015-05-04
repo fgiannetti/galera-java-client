@@ -12,7 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class GaleraNode {
-    private final String node;
+    public final String node;
     private final GaleraDB galeraDB;
     private final PoolSettings poolSettings;
     private final HikariDataSource statusDataSource;

@@ -11,6 +11,7 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class GaleraClient {
 
@@ -18,6 +19,7 @@ public class GaleraClient {
 
     private Map<String, GaleraNode> nodes = new ConcurrentHashMap<String, GaleraNode>();
     private AtomicInteger nextNodeIndex = new AtomicInteger(new Random().nextInt(997));
+    private String masterNode;
     private List<String> activeNodes = new CopyOnWriteArrayList<String>();
     private List<String> downedNodes = new CopyOnWriteArrayList<String>();
     private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
@@ -174,12 +176,28 @@ public class GaleraClient {
     }
 
     public Connection getConnection() throws SQLException {
-        return nextActiveGaleraNode(1).getConnection();
+        return selectNode(false).getConnection();
     }
 
-    public Connection getConnection(ConsistencyLevel consistencyLevel) throws Exception {
+    public Connection getConnection(ConsistencyLevel consistencyLevel, boolean holdsMaster) throws Exception {
+        GaleraNode galeraNode = selectNode(holdsMaster);
+        return galeraNode.getConnection(consistencyLevel);
+    }
 
-        return nextActiveGaleraNode(1).getConnection(consistencyLevel);
+    private GaleraNode selectNode(boolean holdsMaster) {
+        if(holdsMaster) {
+            evaluateAndSwapMaster();
+            return nodes.get(masterNode);
+        }
+
+        return nextActiveGaleraNode(1);
+    }
+
+    private synchronized void evaluateAndSwapMaster() {
+        if(masterNode == null || !activeNodes.contains(masterNode) || nodes.get(masterNode) == null) {
+            LOG.info("Selecting a master node because of " + ((masterNode == null) ? "it is the first connection asking for a master" : masterNode + " is not active anymore"));
+            masterNode = nextActiveGaleraNode(1).node;
+        }
     }
 
     private GaleraNode nextActiveGaleraNode(int retry) {

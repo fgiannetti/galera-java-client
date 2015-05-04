@@ -6,11 +6,11 @@ import java.sql.SQLException;
 public class GaleraClientTest {
 
 
-    public static void main(String[] args) throws SQLException, InterruptedException {
+    public static void main(String[] args) throws Exception {
         new GaleraClientTest().testGaleraClient();
     }
 
-    public void testGaleraClient() throws SQLException, InterruptedException {
+    public void testGaleraClient() throws Exception {
         GaleraClient client = new GaleraClient.Builder().seeds("maria-1.mg10.dev.docker")
                 .database("").user("despegar").password("despegar").discoverPeriod(2000)
                 .connectTimeout(500).connectionTimeout(1000).readTimeout(1000)
@@ -20,6 +20,7 @@ public class GaleraClientTest {
         try {
             connection = client.getConnection();
             //connection = client.getConnection(ConsistencyLevel.CAUSAL_READS_ON);
+            connection = client.getConnection(ConsistencyLevel.SYNC_READ_UPDATE_DELETE, true);
         } finally {
             if (connection != null) {
                 connection.close();

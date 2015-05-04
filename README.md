@@ -28,7 +28,12 @@ It doesn't implement the mysql protocol or manage jdbc connections by itself. It
 
 ## Maven
 
-[TODO]
+```xml
+<dependency>
+    <groupId>com.despegar.jdbc</groupId>
+    <artifactId>galera-java-client</artifactId>
+    <version>1.0</version>
+</dependency>
 
 ### Configure
 

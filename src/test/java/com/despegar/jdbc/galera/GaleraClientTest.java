@@ -19,7 +19,7 @@ public class GaleraClientTest {
         Connection connection = null;
         try {
             connection = client.getConnection();
-            connection = client.getConnection(ConsistencyLevel.CAUSAL_READS_ON);
+            //connection = client.getConnection(ConsistencyLevel.CAUSAL_READS_ON);
         } finally {
             if (connection != null) {
                 connection.close();

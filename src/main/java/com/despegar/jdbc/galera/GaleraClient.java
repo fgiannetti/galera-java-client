@@ -1,5 +1,7 @@
 package com.despegar.jdbc.galera;
 
+import com.despegar.jdbc.galera.listener.GaleraClientListener;
+import com.despegar.jdbc.galera.listener.GaleraClientLoggingListener;
 import com.despegar.jdbc.galera.settings.ClientSettings;
 import com.despegar.jdbc.galera.settings.DiscoverSettings;
 import com.despegar.jdbc.galera.settings.PoolSettings;
@@ -11,7 +13,6 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class GaleraClient {
 
@@ -75,6 +76,8 @@ public class GaleraClient {
             activeNodes.add(downedNode);
         }
         downedNodes.remove(downedNode);
+
+        clientSettings.galeraClientListener.onActivatingNode(downedNode);
     }
 
     private void down(String node, String cause) {
@@ -84,6 +87,8 @@ public class GaleraClient {
             downedNodes.add(node);
         }
         closeConnections(node);
+
+        clientSettings.galeraClientListener.onMarkingNodeAsDown(node, cause);
     }
 
     private void discoverActiveNodes() {
@@ -101,6 +106,8 @@ public class GaleraClient {
         downedNodes.remove(node);
         shutdownGaleraNode(node);
         nodes.remove(node);
+
+        clientSettings.galeraClientListener.onRemovingNode(node);
     }
 
     private void closeConnections(String node) {
@@ -194,9 +201,12 @@ public class GaleraClient {
     }
 
     private synchronized void evaluateAndSwapMaster() {
-        if(masterNode == null || !activeNodes.contains(masterNode) || nodes.get(masterNode) == null) {
-            LOG.info("Selecting a master node because of " + ((masterNode == null) ? "it is the first connection asking for a master" : masterNode + " is not active anymore"));
+        if(masterNode == null || !isActive(masterNode) || !nodes.containsKey(masterNode)) {
+            String cause = (masterNode == null) ? "it is the first connection asking for a master" : masterNode + " is not active anymore";
+            LOG.info("Selecting a master node because of {}", cause);
             masterNode = nextActiveGaleraNode(1).node;
+
+            clientSettings.galeraClientListener.onSelectingNewMaster(masterNode, cause);
         }
     }
 
@@ -237,6 +247,7 @@ public class GaleraClient {
         private long idleTimeout;
         private boolean ignoreDonor = true;
         private int retriesToGetConnection = 3;
+        private GaleraClientListener listener;
 
         public Builder seeds(String seeds) {
             this.seeds = seeds;
@@ -281,8 +292,18 @@ public class GaleraClient {
             return connectionTimeout(timeUnit.toMillis(connectionTimeout));
         }
 
+        public Builder listener(GaleraClientListener galeraClientListener) {
+            this.listener = galeraClientListener;
+            return this;
+        }
+
         public GaleraClient build() {
-            return new GaleraClient(new ClientSettings(seeds(), retriesToGetConnection), new DiscoverSettings(discoverPeriod, ignoreDonor), new GaleraDB(database, user, password), new PoolSettings(maxConnectionsPerHost, connectTimeout, connectionTimeout, readTimeout, idleTimeout));
+            ClientSettings clientSettings = new ClientSettings(seeds(), retriesToGetConnection, (listener != null) ? listener : new GaleraClientLoggingListener());
+            DiscoverSettings discoverSettings = new DiscoverSettings(discoverPeriod, ignoreDonor);
+            GaleraDB galeraDB = new GaleraDB(database, user, password);
+            PoolSettings poolSettings = new PoolSettings(maxConnectionsPerHost, connectTimeout, connectionTimeout, readTimeout, idleTimeout);
+
+            return new GaleraClient(clientSettings, discoverSettings, galeraDB, poolSettings);
         }
 
         private ArrayList<String> seeds() {

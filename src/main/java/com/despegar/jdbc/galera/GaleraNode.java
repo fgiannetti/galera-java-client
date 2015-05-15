@@ -3,6 +3,8 @@ package com.despegar.jdbc.galera;
 import com.despegar.jdbc.galera.settings.PoolSettings;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -12,6 +14,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class GaleraNode {
+    private static final Logger LOG = LoggerFactory.getLogger(GaleraNode.class);
+
     public final String node;
     private final GaleraDB galeraDB;
     private final PoolSettings poolSettings;
@@ -20,6 +24,7 @@ public class GaleraNode {
     private volatile GaleraStatus status;
 
     public GaleraNode(String node, GaleraDB galeraDB, PoolSettings poolSettings) {
+        LOG.info("Creating galera node " + node);
         this.node = node;
         this.galeraDB = galeraDB;
         this.poolSettings = poolSettings;
@@ -98,6 +103,7 @@ public class GaleraNode {
 
     public void onDown() {
         if (dataSource != null) {
+            LOG.info("Closing all connections on node " + node);
             dataSource.shutdown();
             dataSource = null;
         }

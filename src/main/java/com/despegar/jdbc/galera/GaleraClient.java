@@ -118,6 +118,7 @@ public class GaleraClient {
     }
 
     private void shutdownGaleraNode(String node) {
+        LOG.info("Shutting down galera node " + node);
         GaleraNode galeraNode = nodes.get(node);
         if (galeraNode != null) {
             galeraNode.shutdown();
@@ -130,11 +131,13 @@ public class GaleraClient {
         galeraNode.refreshStatus();
         GaleraStatus status = galeraNode.status();
         if (!status.isPrimary()) {
+            LOG.debug("On discover - Non primary node " + node);
             down(node, "non Primary");
             return;
         }
 
         if (!status.isSynced() || (status.isDonor() && discoverSettings.ignoreDonor)) {
+            LOG.debug("On discover - State not ready [" + status.state() + "]: " +node);
             down(node, "state not ready: " + status.state());
             return;
         }
@@ -188,6 +191,7 @@ public class GaleraClient {
 
     public Connection getConnection(ConsistencyLevel consistencyLevel, boolean holdsMaster) throws Exception {
         GaleraNode galeraNode = selectNode(holdsMaster);
+        LOG.debug("Getting connection from node " + (holdsMaster?"[master] ":"") + galeraNode.node);
         return galeraNode.getConnection(consistencyLevel);
     }
 

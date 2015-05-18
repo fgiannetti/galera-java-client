@@ -237,7 +237,7 @@ public class GaleraClient {
         return nextNodeIndex.incrementAndGet() % activeNodesCount;
     }
 
-    static class Builder {
+    public static class Builder {
 
         private String database;
         private String user;

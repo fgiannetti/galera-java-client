@@ -1,8 +1,6 @@
 package com.despegar.jdbc.galera;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Map;
+import java.util.*;
 
 public class GaleraStatus {
     private final Map<String, String> statusMap;

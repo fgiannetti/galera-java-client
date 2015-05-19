@@ -59,7 +59,7 @@ public class GaleraClient {
         for (String downedNode : downedNodes) {
             try {
                 discover(downedNode);
-                if (nodes.containsKey(downedNode)) {
+                if (nodes.containsKey(downedNode) && !(nodes.get(downedNode).status().isDonor() && discoverSettings.ignoreDonor)) {
                     LOG.debug("Will activate a previous downed node: {}", downedNode);
                     activate(downedNode);
                 }
@@ -136,11 +136,12 @@ public class GaleraClient {
             return;
         }
 
-        if (!status.isSynced() || (status.isDonor() && discoverSettings.ignoreDonor)) {
-            LOG.debug("On discover - State not ready [" + status.state() + "]: " +node);
+        if (!status.isSynced() && (discoverSettings.ignoreDonor || !status.isDonor())) {
+            LOG.debug("On discover - State not ready [" + status.state() + "] - Ignore donor [" + discoverSettings.ignoreDonor + "] : " +node);
             down(node, "state not ready: " + status.state());
             return;
         }
+
         Collection<String> discoveredNodes = status.getClusterNodes();
         for (String discoveredNode : discoveredNodes) {
             if (isNew(discoveredNode)) {
@@ -150,7 +151,7 @@ public class GaleraClient {
         if (!discoveredNodes.contains(node)) {
             removeNode(node);
         } else {
-            if (!isActive(node)) {
+            if (!isActive(node) && !(nodes.get(node).status().isDonor() && discoverSettings.ignoreDonor)) {
                 LOG.info("Will activate a discovered node: {}", node);
                 activate(node);
             }

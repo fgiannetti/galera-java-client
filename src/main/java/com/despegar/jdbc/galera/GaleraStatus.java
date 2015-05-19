@@ -34,9 +34,8 @@ public class GaleraStatus {
     }
 
     public int getGlobalConsistencyLevel() {
-        Integer syncWait = getInt("wsrep_sync_wait");
-        if (syncWait != null) {
-            return syncWait;
+        if (supportsSyncWait()) {
+            return getInt("wsrep_sync_wait");
         }
 
         // Earlier mariadb versions

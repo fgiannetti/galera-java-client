@@ -57,7 +57,7 @@ public class GaleraProxyConnection implements InvocationHandler {
         PreparedStatement preparedStatement = null;
 
         try {
-            String stmt = (this.supportsSyncWait) ? "SET SESSION wsrep_sync_wait = ?" : "set session wsrep-causal-reads = ?";
+            String stmt = (this.supportsSyncWait) ? "SET SESSION wsrep_sync_wait = ?" : "set session wsrep_causal_reads = ?";
 
             preparedStatement = underlyingConnection.prepareStatement(stmt);
             preparedStatement.setInt(1, consistencyLevel);

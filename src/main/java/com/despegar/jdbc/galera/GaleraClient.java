@@ -193,6 +193,11 @@ public class GaleraClient {
         return selectNode(false).getConnection();
     }
 
+    public Connection getConnection(String node, ConsistencyLevel consistencyLevel) throws Exception {
+        LOG.debug("Getting connection from node {}", node);
+        return nodes.get(node).getConnection(consistencyLevel);
+    }
+
     public Connection getConnection(ConsistencyLevel consistencyLevel, boolean holdsMaster) throws Exception {
         GaleraNode galeraNode = selectNode(holdsMaster);
         LOG.debug("Getting connection from node " + (holdsMaster ? "[master] " : "") + galeraNode.node);

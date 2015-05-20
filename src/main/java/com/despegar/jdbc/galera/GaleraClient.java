@@ -70,7 +70,7 @@ public class GaleraClient {
     }
 
     private void activate(String downedNode) {
-        if (!activeNodes.contains(downedNode)) {
+//        if (!activeNodes.contains(downedNode)) {
             nodes.get(downedNode).onActivate();
             if (!activeNodes.contains(downedNode)) {
                 LOG.debug("Activating node:  {}", downedNode);
@@ -79,7 +79,7 @@ public class GaleraClient {
             downedNodes.remove(downedNode);
 
             clientSettings.galeraClientListener.onActivatingNode(downedNode);
-        }
+//        }
     }
 
     private void down(String node, String cause) {

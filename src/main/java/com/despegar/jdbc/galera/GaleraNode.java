@@ -29,12 +29,13 @@ public class GaleraNode {
         this.galeraDB = galeraDB;
         this.poolSettings = poolSettings;
 
-        HikariConfig hikariConfig = newHikariConfig(node, galeraDB, poolSettings);
+        HikariConfig hikariConfig = newHikariConfig("hikari-pool-status-" + node, node, galeraDB, poolSettings);
         statusDataSource = new HikariDataSource(hikariConfig);
     }
 
-    private HikariConfig newHikariConfig(String node, GaleraDB galeraDB, PoolSettings poolSettings) {
+    private HikariConfig newHikariConfig(String poolName, String node, GaleraDB galeraDB, PoolSettings poolSettings) {
         HikariConfig config = new HikariConfig();
+        config.setPoolName(poolName);
         config.setJdbcUrl("jdbc:mysql://" + node + "/" + galeraDB.database);
         config.setUsername(galeraDB.user);
         config.setPassword(galeraDB.password);
@@ -98,7 +99,7 @@ public class GaleraNode {
     }
 
     public void onActivate() {
-        dataSource = new HikariDataSource(newHikariConfig(node, galeraDB, poolSettings));
+        dataSource = new HikariDataSource(newHikariConfig("hikari-pool-" + node, node, galeraDB, poolSettings));
     }
 
     public void onDown() {

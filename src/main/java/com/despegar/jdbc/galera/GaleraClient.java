@@ -70,14 +70,16 @@ public class GaleraClient {
     }
 
     private void activate(String downedNode) {
-        nodes.get(downedNode).onActivate();
         if (!activeNodes.contains(downedNode)) {
-            LOG.debug("Activating node:  {}", downedNode);
-            activeNodes.add(downedNode);
-        }
-        downedNodes.remove(downedNode);
+            nodes.get(downedNode).onActivate();
+            if (!activeNodes.contains(downedNode)) {
+                LOG.debug("Activating node:  {}", downedNode);
+                activeNodes.add(downedNode);
+            }
+            downedNodes.remove(downedNode);
 
-        clientSettings.galeraClientListener.onActivatingNode(downedNode);
+            clientSettings.galeraClientListener.onActivatingNode(downedNode);
+        }
     }
 
     private void down(String node, String cause) {
@@ -137,7 +139,7 @@ public class GaleraClient {
         }
 
         if (!status.isSynced() && (discoverSettings.ignoreDonor || !status.isDonor())) {
-            LOG.debug("On discover - State not ready [" + status.state() + "] - Ignore donor [" + discoverSettings.ignoreDonor + "] : " +node);
+            LOG.debug("On discover - State not ready [" + status.state() + "] - Ignore donor [" + discoverSettings.ignoreDonor + "] : " + node);
             down(node, "state not ready: " + status.state());
             return;
         }
@@ -145,6 +147,7 @@ public class GaleraClient {
         Collection<String> discoveredNodes = status.getClusterNodes();
         for (String discoveredNode : discoveredNodes) {
             if (isNew(discoveredNode)) {
+                LOG.info("Found new node {}. Actual nodes {}", discoveredNode, nodes.keySet());
                 registerNode(discoveredNode);
             }
         }
@@ -192,12 +195,12 @@ public class GaleraClient {
 
     public Connection getConnection(ConsistencyLevel consistencyLevel, boolean holdsMaster) throws Exception {
         GaleraNode galeraNode = selectNode(holdsMaster);
-        LOG.debug("Getting connection from node " + (holdsMaster?"[master] ":"") + galeraNode.node);
+        LOG.debug("Getting connection from node " + (holdsMaster ? "[master] " : "") + galeraNode.node);
         return galeraNode.getConnection(consistencyLevel);
     }
 
     private GaleraNode selectNode(boolean holdsMaster) {
-        if(holdsMaster) {
+        if (holdsMaster) {
             evaluateAndSwapMaster();
             return nodes.get(masterNode);
         }
@@ -206,7 +209,7 @@ public class GaleraClient {
     }
 
     private synchronized void evaluateAndSwapMaster() {
-        if(masterNode == null || !isActive(masterNode) || !nodes.containsKey(masterNode)) {
+        if (masterNode == null || !isActive(masterNode) || !nodes.containsKey(masterNode)) {
             String cause = (masterNode == null) ? "it is the first connection asking for a master" : masterNode + " is not active anymore";
             LOG.info("Selecting a master node because of {}", cause);
             masterNode = nextActiveGaleraNode(1).node;

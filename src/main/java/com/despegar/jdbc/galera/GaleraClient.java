@@ -174,7 +174,9 @@ public class GaleraClient {
 
     private void registerNodes(Collection<String> seeds) {
         for (String seed : seeds) {
-            registerNode(seed);
+            if (isNew(seed)) {
+                registerNode(seed);
+            }
         }
     }
 

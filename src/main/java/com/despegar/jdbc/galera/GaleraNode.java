@@ -90,7 +90,6 @@ public class GaleraNode {
         if (statusDataSource != null) statusDataSource.shutdown();
     }
 
-    // FIXME BUG cuando hay mas de un seed
     public Connection getConnection() throws SQLException {
         return dataSource.getConnection();
     }

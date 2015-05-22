@@ -59,7 +59,7 @@ public class GaleraClient {
         for (String downedNode : downedNodes) {
             try {
                 discover(downedNode);
-                if (nodes.containsKey(downedNode) && !(nodes.get(downedNode).status().isDonor() && discoverSettings.ignoreDonor)) {
+                if (nodes.containsKey(downedNode) && !(nodes.get(downedNode).status().isDonor() && discoverSettings.ignoreDonor) && nodes.get(downedNode).status().isPrimary()) {
                     LOG.debug("Will activate a previous downed node: {}", downedNode);
                     activate(downedNode);
                 }

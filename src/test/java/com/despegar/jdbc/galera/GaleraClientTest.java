@@ -25,6 +25,8 @@ public class GaleraClientTest {
             if (connection != null) {
                 connection.close();
             }
+
+            client.close();
         }
     }
 

@@ -247,6 +247,11 @@ public class GaleraClient {
         return nextNodeIndex.incrementAndGet() % activeNodesCount;
     }
 
+    public void close() {
+        LOG.info("Shutting down Galera Client...");
+        scheduler.shutdown();
+    }
+
     public static class Builder {
 
         private String database;

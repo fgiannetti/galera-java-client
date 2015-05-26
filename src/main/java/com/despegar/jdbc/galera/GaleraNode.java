@@ -54,10 +54,18 @@ public class GaleraNode {
     }
 
     public void refreshStatus() throws Exception {
+        Map<String, String> statusMap = queryStatus("SHOW STATUS LIKE 'wsrep_%'");
+        Map<String, String> globalVariablesMap = queryStatus("SHOW GLOBAL VARIABLES WHERE variable_name in ('wsrep_sync_wait', 'wsrep_causal_reads');");
+        statusMap.putAll(globalVariablesMap);
+
+        status = new GaleraStatus(statusMap);
+    }
+
+    private Map<String, String> queryStatus(String query) throws Exception {
         Connection connection = statusDataSource.getConnection();
         PreparedStatement preparedStatement = null;
         try {
-            preparedStatement = connection.prepareStatement("SHOW STATUS LIKE 'wsrep_%'");
+            preparedStatement = connection.prepareStatement(query);
             ResultSet resultSet = preparedStatement.executeQuery();
             Map<String, String> statusMap = new HashMap<String, String>();
             while (resultSet.next()) {
@@ -65,7 +73,7 @@ public class GaleraNode {
                 String statusValue = resultSet.getString(2);
                 statusMap.put(statusKey, statusValue);
             }
-            status = new GaleraStatus(statusMap);
+            return statusMap;
         } finally {
             tryClose(preparedStatement);
             tryClose(connection);

@@ -34,6 +34,7 @@ It doesn't implement the mysql protocol or manage jdbc connections by itself. It
     <artifactId>galera-java-client</artifactId>
     <version>1.0</version>
 </dependency>
+```
 
 ### Configure
 

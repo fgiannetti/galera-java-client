@@ -18,7 +18,7 @@ public class GaleraProxyConnection implements InvocationHandler {
     private static final Logger LOG = LoggerFactory.getLogger(GaleraProxyConnection.class);
 
     private Connection underlyingConnection;
-    private int globalConsistencyLevel;
+    private String globalConsistencyLevel;
     private boolean supportsSyncWait;
 
     public GaleraProxyConnection(Connection conn, ConsistencyLevel connectionConsistencyLevel, GaleraStatus galeraStatus) throws Exception {
@@ -28,14 +28,13 @@ public class GaleraProxyConnection implements InvocationHandler {
 
         validate(connectionConsistencyLevel);
 
-        LOG.info("Setting connection consistency level to " + connectionConsistencyLevel);
         setConnectionConsistencyLevel(connectionConsistencyLevel.value);
     }
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         if ("close".equals(method.getName())) {
-            LOG.info("Setting wsrep_sync_wait to global default before closing connection");
+            LOG.info("Setting wsrep_sync_wait to global default before closing connection " + globalConsistencyLevel);
             setConnectionConsistencyLevel(globalConsistencyLevel);
         }
         return method.invoke(underlyingConnection, args);
@@ -53,14 +52,22 @@ public class GaleraProxyConnection implements InvocationHandler {
         }
     }
 
-    private void setConnectionConsistencyLevel(Integer consistencyLevel) throws Exception {
+    private void setConnectionConsistencyLevel(String consistencyLevel) throws Exception {
         PreparedStatement preparedStatement = null;
 
         try {
-            String stmt = (this.supportsSyncWait) ? "SET SESSION wsrep_sync_wait = ?" : "set session wsrep_causal_reads = ?";
+            if (this.supportsSyncWait) {
+                LOG.info("Setting wsrep_sync_wait to " + consistencyLevel);
+                String stmt = "SET SESSION wsrep_sync_wait = ?";
+                preparedStatement = underlyingConnection.prepareStatement(stmt);
+                preparedStatement.setInt(1, Integer.valueOf(consistencyLevel));
+            } else {
+                LOG.info("Setting wsrep_causal_reads to " + consistencyLevel);
+                String stmt = "SET SESSION wsrep_causal_reads = ?";
+                preparedStatement = underlyingConnection.prepareStatement(stmt);
+                preparedStatement.setString(1, consistencyLevel);
+            }
 
-            preparedStatement = underlyingConnection.prepareStatement(stmt);
-            preparedStatement.setInt(1, consistencyLevel);
             preparedStatement.execute();
 
         } finally {

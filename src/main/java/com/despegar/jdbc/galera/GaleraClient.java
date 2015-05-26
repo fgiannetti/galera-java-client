@@ -18,7 +18,7 @@ public class GaleraClient {
 
     private static final Logger LOG = LoggerFactory.getLogger(GaleraClient.class);
 
-    private Map<String, GaleraNode> nodes = new ConcurrentHashMap<String, GaleraNode>();
+    protected Map<String, GaleraNode> nodes = new ConcurrentHashMap<String, GaleraNode>();
     private AtomicInteger nextNodeIndex = new AtomicInteger(new Random().nextInt(997));
     private String masterNode;
     private List<String> activeNodes = new CopyOnWriteArrayList<String>();
@@ -35,7 +35,7 @@ public class GaleraClient {
         }
     };
 
-    private GaleraClient(ClientSettings clientSettings, DiscoverSettings discoverSettings, GaleraDB galeraDB, PoolSettings poolSettings) {
+    protected GaleraClient(ClientSettings clientSettings, DiscoverSettings discoverSettings, GaleraDB galeraDB, PoolSettings poolSettings) {
         this.galeraDB = galeraDB;
         this.poolSettings = poolSettings;
         this.discoverSettings = discoverSettings;
@@ -194,18 +194,13 @@ public class GaleraClient {
         return selectNode(false).getConnection();
     }
 
-    public Connection getConnection(String node, ConsistencyLevel consistencyLevel) throws Exception {
-        LOG.debug("Getting connection from node {}", node);
-        return nodes.get(node).getConnection(consistencyLevel);
-    }
-
     public Connection getConnection(ConsistencyLevel consistencyLevel, boolean holdsMaster) throws Exception {
         GaleraNode galeraNode = selectNode(holdsMaster);
         LOG.debug("Getting connection from node " + (holdsMaster ? "[master] " : "") + galeraNode.node);
         return galeraNode.getConnection(consistencyLevel);
     }
 
-    private GaleraNode selectNode(boolean holdsMaster) {
+    protected GaleraNode selectNode(boolean holdsMaster) {
         if (holdsMaster) {
             evaluateAndSwapMaster();
             return nodes.get(masterNode);
@@ -247,7 +242,7 @@ public class GaleraClient {
         return nextNodeIndex.incrementAndGet() % activeNodesCount;
     }
 
-    public void close() {
+    public void shutdown() {
         LOG.info("Shutting down Galera Client...");
         scheduler.shutdown();
     }

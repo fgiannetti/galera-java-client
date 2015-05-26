@@ -33,25 +33,13 @@ public class GaleraStatus {
         return statusMap.keySet().contains("wsrep_sync_wait");
     }
 
-    public int getGlobalConsistencyLevel() {
+    public String getGlobalConsistencyLevel() {
         if (supportsSyncWait()) {
-            return getInt("wsrep_sync_wait");
+            return statusMap.get("wsrep_sync_wait");
         }
 
         // Earlier mariadb versions
-        return getInt("wsrep_causal_reads");
-    }
-
-
-    public int getInt(String variableName) {
-        Integer intValue = null;
-
-        String stringValue = statusMap.get(variableName);
-        if (stringValue != null) {
-            intValue =  Integer.valueOf(stringValue);
-        }
-
-        return intValue;
+        return statusMap.get("wsrep_causal_reads");
     }
 
 }

@@ -26,7 +26,7 @@ public class GaleraClientTest {
                 connection.close();
             }
 
-            client.close();
+            client.shutdown();
         }
     }
 

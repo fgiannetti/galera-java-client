@@ -11,9 +11,12 @@ import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.UUID;
+
+import org.junit.Ignore;
 import org.junit.Test;
 
 
+@Ignore(value = "Ignoring because of bad configuration: host, database, user, ..")
 public class CausalReadsTest {
     private ArrayList<String> seeds = new ArrayList<String>(Arrays.asList("<host:port>"));
     private ClientSettings clientSettings = new ClientSettings(seeds, 5, new GaleraClientLoggingListener());

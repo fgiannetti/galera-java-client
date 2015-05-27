@@ -21,8 +21,4 @@ public class GaleraClientLoggingListener implements GaleraClientListener {
         LOG.info("Removing galera node: {}", node);
     }
 
-    @Override
-    public void onSelectingNewMaster(String masterNode, String cause) {
-        LOG.info("Selecting a galera master node because of {}. New master is {}", cause, masterNode);
-    }
 }

@@ -2,6 +2,9 @@ package com.despegar.jdbc.galera;
 
 import com.despegar.jdbc.galera.listener.GaleraClientListener;
 import com.despegar.jdbc.galera.listener.GaleraClientLoggingListener;
+import com.despegar.jdbc.galera.policies.ElectionNodePolicy;
+import com.despegar.jdbc.galera.policies.MasterSortingNodesPolicy;
+import com.despegar.jdbc.galera.policies.RoundRobinPolicy;
 import com.despegar.jdbc.galera.settings.ClientSettings;
 import com.despegar.jdbc.galera.settings.DiscoverSettings;
 import com.despegar.jdbc.galera.settings.PoolSettings;
@@ -12,15 +15,12 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class GaleraClient {
 
     private static final Logger LOG = LoggerFactory.getLogger(GaleraClient.class);
 
     protected Map<String, GaleraNode> nodes = new ConcurrentHashMap<String, GaleraNode>();
-    private AtomicInteger nextNodeIndex = new AtomicInteger(new Random().nextInt(997));
-    private String masterNode;
     private List<String> activeNodes = new CopyOnWriteArrayList<String>();
     private List<String> downedNodes = new CopyOnWriteArrayList<String>();
     private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
@@ -28,6 +28,7 @@ public class GaleraClient {
     private PoolSettings poolSettings;
     private DiscoverSettings discoverSettings;
     private ClientSettings clientSettings;
+    private ElectionNodePolicy roundRobinPolicy = new RoundRobinPolicy();
     private Runnable discoverRunnable = new Runnable() {
         @Override
         public void run() {
@@ -201,45 +202,24 @@ public class GaleraClient {
     }
 
     protected GaleraNode selectNode(boolean holdsMaster) {
-        if (holdsMaster) {
-            evaluateAndSwapMaster();
-            return nodes.get(masterNode);
-        }
-
-        return nextActiveGaleraNode(1);
+        return getActiveGaleraNode(1, holdsMaster);
     }
 
-    private synchronized void evaluateAndSwapMaster() {
-        if (masterNode == null || !isActive(masterNode) || !nodes.containsKey(masterNode)) {
-            String cause = (masterNode == null) ? "it is the first connection asking for a master" : masterNode + " is not active anymore";
-            LOG.info("Selecting a master node because of {}", cause);
-            masterNode = nextActiveGaleraNode(1).node;
-
-            clientSettings.galeraClientListener.onSelectingNewMaster(masterNode, cause);
-        }
-    }
-
-    private GaleraNode nextActiveGaleraNode(int retry) {
+    private GaleraNode getActiveGaleraNode(int retry, boolean holdsMaster) {
         if (retry <= clientSettings.retriesToGetConnection) {
             try {
-                GaleraNode galeraNode = nodes.get(activeNodes.get(nextNodeIndex()));
-                return galeraNode != null ? galeraNode : nextActiveGaleraNode(++retry);
-            } catch (IndexOutOfBoundsException outOfBoundsException) {
-                return nextActiveGaleraNode(++retry);
+                ElectionNodePolicy policy = (holdsMaster)? clientSettings.masterPolicy : roundRobinPolicy;
+                GaleraNode galeraNode = nodes.get(policy.chooseNode(activeNodes));
+
+                return galeraNode != null ? galeraNode : getActiveGaleraNode(++retry, holdsMaster);
+            } catch (Exception exception) {
+                LOG.warn("Error getting active galera node. Retry {}/{}. Reason {}", retry, clientSettings.retriesToGetConnection, exception);
+                return getActiveGaleraNode(++retry, holdsMaster);
             }
         } else {
             LOG.error("NoHostAvailableException selecting an active galera node. Max attempts reached");
             throw new NoHostAvailableException();
         }
-    }
-
-    private int nextNodeIndex() {
-        int activeNodesCount = activeNodes.size();
-        if (activeNodesCount == 0) {
-            LOG.error("NoHostAvailableException - Active node count is zero");
-            throw new NoHostAvailableException();
-        }
-        return nextNodeIndex.incrementAndGet() % activeNodesCount;
     }
 
     public void shutdown() {
@@ -262,6 +242,9 @@ public class GaleraClient {
         private boolean ignoreDonor = true;
         private int retriesToGetConnection = 3;
         private GaleraClientListener listener;
+        private ElectionNodePolicy masterPolicy;
+        private ElectionNodePolicy defaultMasterPolicy = new MasterSortingNodesPolicy();
+
 
         public Builder seeds(String seeds) {
             this.seeds = seeds;
@@ -311,8 +294,13 @@ public class GaleraClient {
             return this;
         }
 
+        public Builder masterPolicy(ElectionNodePolicy masterPolicy) {
+            this.masterPolicy = masterPolicy;
+            return this;
+        }
+
         public GaleraClient build() {
-            ClientSettings clientSettings = new ClientSettings(seeds(), retriesToGetConnection, (listener != null) ? listener : new GaleraClientLoggingListener());
+            ClientSettings clientSettings = new ClientSettings(seeds(), retriesToGetConnection, (listener != null) ? listener : new GaleraClientLoggingListener(), (masterPolicy != null) ? masterPolicy : defaultMasterPolicy);
             DiscoverSettings discoverSettings = new DiscoverSettings(discoverPeriod, ignoreDonor);
             GaleraDB galeraDB = new GaleraDB(database, user, password);
             PoolSettings poolSettings = new PoolSettings(maxConnectionsPerHost, connectTimeout, connectionTimeout, readTimeout, idleTimeout);

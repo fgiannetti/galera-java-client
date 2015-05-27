@@ -8,6 +8,4 @@ public interface GaleraClientListener {
 
     void onRemovingNode(String node);
 
-    void onSelectingNewMaster(String masterNode, String cause);
-
 }

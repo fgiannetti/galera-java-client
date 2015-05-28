@@ -13,10 +13,23 @@
     <url>https://github.com/despegar/galera-java-client</url>
     <description>A simple Java client for MariaDB Galera Cluster and Percona XtraDB Cluster. It is designed to be an alternative to connect JVM app to MariaDB/Percona galera nodes without HAProxy</description>
 
+    <licenses>
+        <license>
+            <name>Apache 2</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+
     <scm>
         <url>git@github.com:despegar/galera-java-client.git</url>
         <connection>scm:git:git@github.com:despegar/galera-java-client.git</connection>
     </scm>
+
+    <developers>
+        <developer>
+            <name>Despegar Hotels Tech</name>
+        </developer>
+    </developers>
 
     <dependencies>
         <dependency>

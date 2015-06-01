@@ -81,6 +81,8 @@ client.shutdown();
 ```
 The `connection.close()` returns the connection to the pool and `client.shutdown()`  stops all the underlying machinery of the client.   
 
+#### For a more complete example, see [CausalReadsTest].
+
 ## Implementation details
 
   * mariadb-client 1.1.7
@@ -91,3 +93,5 @@ The `connection.close()` returns the connection to the pool and `client.shutdown
 `galera-java-client` is open to the community to collaborations and contributions
 
 [source code]: https://github.com/despegar/galera-java-client/blob/master/src/main/java/com/despegar/jdbc/galera/GaleraClient.java#L229
+
+[CausalReadsTest]:https://github.com/despegar/galera-java-client/blob/master/src/test/java/com/despegar/jdbc/galera/CausalReadsTest.java

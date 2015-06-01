@@ -23,8 +23,20 @@ It doesn't implement the mysql protocol or manage jdbc connections by itself. It
 * **Supporting custom connections:**
   You can get a connection with a simple `client.getConnection()`. In this case, you'll get a connection from any node and the consistency level will be the global value configured in your mariaDB wsrep_sync_wait (or wsrep_causal_reads for earlier versions). 
   But you can also use something like `client.getConnection(ConsistencyLevel.SYNC_READ_UPDATE_DELETE, true)`. 
-  
+  The `ConsistencyLevel` values can change depending of the Galera versions as follows: 
+  * Galera 5.5.39 - MariaDB Galera 10.0.13
+    * SYNC_OFF
+    * SYNC_READS
+    * SYNC_UPDATE_DELETE
+    * SYNC_READ_UPDATE_DELETE
+    * SYNC_INSERT_REPLACE
+  * Earlier versions
+    * CAUSAL_READS_OFF
+    * CAUSAL_READS_ON
+
 * **GaleraClientListener:** You can extend functionality, for example to report some metrics, setting on the client builder an implementation of GaleraClientListener, which has callbacks for the following events: activating/removing node, marking node as down and selecting a new master node. The default implementation just logs this events.       
+
+* **ElectionNodePolicy:** You can provide a custom election node policy only with supplying a fully qualified name of the implementation of `com.despegar.jdbc.galera.policies.ElectionNodePolicy` that will be used to select the node and get the connection. When you ask for a connection with *holdsMaster in true* the client uses the `com.despegar.jdbc.galera.policies.MasterSortingNodesPolicy` otherwise `com.despegar.jdbc.galera.policies.RoundRobinPolicy`.
 
 ## Maven
 

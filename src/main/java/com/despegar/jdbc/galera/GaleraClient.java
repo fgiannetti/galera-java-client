@@ -28,7 +28,6 @@ public class GaleraClient {
     private PoolSettings poolSettings;
     private DiscoverSettings discoverSettings;
     private ClientSettings clientSettings;
-    private ElectionNodePolicy roundRobinPolicy = new RoundRobinPolicy();
     private Runnable discoverRunnable = new Runnable() {
         @Override
         public void run() {
@@ -208,7 +207,7 @@ public class GaleraClient {
     private GaleraNode getActiveGaleraNode(int retry, boolean holdsMaster) {
         if (retry <= clientSettings.retriesToGetConnection) {
             try {
-                ElectionNodePolicy policy = (holdsMaster)? clientSettings.masterPolicy : roundRobinPolicy;
+                ElectionNodePolicy policy = (holdsMaster)? clientSettings.masterPolicy : clientSettings.nodeSelectionPolicy;
                 GaleraNode galeraNode = nodes.get(policy.chooseNode(activeNodes));
 
                 return galeraNode != null ? galeraNode : getActiveGaleraNode(++retry, holdsMaster);
@@ -244,6 +243,8 @@ public class GaleraClient {
         private GaleraClientListener listener;
         private ElectionNodePolicy masterPolicy;
         private ElectionNodePolicy defaultMasterPolicy = new MasterSortingNodesPolicy();
+        private ElectionNodePolicy nodeSelectionPolicy;
+        private ElectionNodePolicy defaultNodeSelectionPolicy = new RoundRobinPolicy();
 
 
         public Builder seeds(String seeds) {
@@ -299,8 +300,13 @@ public class GaleraClient {
             return this;
         }
 
+        public Builder nodeSelectionPolicy(ElectionNodePolicy nodePolicy) {
+            this.nodeSelectionPolicy = nodePolicy;
+            return this;
+        }
+
         public GaleraClient build() {
-            ClientSettings clientSettings = new ClientSettings(seeds(), retriesToGetConnection, (listener != null) ? listener : new GaleraClientLoggingListener(), (masterPolicy != null) ? masterPolicy : defaultMasterPolicy);
+            ClientSettings clientSettings = new ClientSettings(seeds(), retriesToGetConnection, (listener != null) ? listener : new GaleraClientLoggingListener(), (masterPolicy != null) ? masterPolicy : defaultMasterPolicy, (nodeSelectionPolicy != null) ? nodeSelectionPolicy : defaultNodeSelectionPolicy);
             DiscoverSettings discoverSettings = new DiscoverSettings(discoverPeriod, ignoreDonor);
             GaleraDB galeraDB = new GaleraDB(database, user, password);
             PoolSettings poolSettings = new PoolSettings(maxConnectionsPerHost, connectTimeout, connectionTimeout, readTimeout, idleTimeout);

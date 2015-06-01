@@ -20,11 +20,22 @@ It doesn't implement the mysql protocol or manage jdbc connections by itself. It
 
 * **Ignoring donor nodes:** Configure this flag with `new GaleraClient.Builder().ignoreDonor(true)`. When this flag is enabled, donor nodes are marked as down, so you will not get connections from donor nodes. Default value: true
 
-* **Supporting custom connections:**
-  You can get a connection with a simple `client.getConnection()`. In this case, you'll get a connection from any node and the consistency level will be the global value configured in your mariaDB wsrep_sync_wait (or wsrep_causal_reads for earlier versions). 
-  But you can also use something like `client.getConnection(ConsistencyLevel.SYNC_READ_UPDATE_DELETE, true)`. 
-  
+* **Supporting custom connections:**  You can get a connection with a simple `client.getConnection()`. In this case, you'll get a connection from any node and the consistency level will be the global value configured in your mariaDB wsrep_sync_wait (or wsrep_causal_reads for earlier versions).
+But you can also use something like `client.getConnection(ConsistencyLevel.SYNC_READ_UPDATE_DELETE, true)`. The
+`ConsistencyLevel` values can change depending of the Galera versions as follows: 
+  * **Galera 5.5.39 - MariaDB Galera 10.0.x**
+    * SYNC_OFF
+    * SYNC_READS
+    * SYNC_UPDATE_DELETE
+    * SYNC_READ_UPDATE_DELETE
+    * SYNC_INSERT_REPLACE
+  * **Earlier versions**
+    * CAUSAL_READS_OFF
+    * CAUSAL_READS_ON
+
 * **GaleraClientListener:** You can extend functionality, for example to report some metrics, setting on the client builder an implementation of GaleraClientListener, which has callbacks for the following events: activating/removing node, marking node as down and selecting a new master node. The default implementation just logs this events.       
+
+* **ElectionNodePolicy:** You can provide a custom election node policy only with supplying a fully qualified name of the implementation of `com.despegar.jdbc.galera.policies.ElectionNodePolicy` that will be used to select the node and get the connection. When you ask for a connection with *holdsMaster in true* the client uses the `com.despegar.jdbc.galera.policies.MasterSortingNodesPolicy` otherwise `com.despegar.jdbc.galera.policies.RoundRobinPolicy`.
 
 ## Maven
 
@@ -46,17 +57,13 @@ It doesn't implement the mysql protocol or manage jdbc connections by itself. It
                             .database("myDatabase")
                             .user("user")
                             .password("password")
-                            .connectTimeout(2000)
-                            .connectionTimeout(2000)
-                            .readTimeout(1000)
-                            .idleTimeout(3000)
                             .discoverPeriod(2000)
-                            .maxConnectionsPerHost(20)
                             .ignoreDonor(true)
                             .retriesToGetConnection(5)
                             .build();
   
 ```
+There are few more options for configuration, you can check these in the [source code].
 
 #### 2) Getting a Connection
 
@@ -66,11 +73,13 @@ Connection connection = client.getConnection(ConsistencyLevel.CAUSAL_READS_ON, f
 - The first parameter specifies the consistency level for this connection (it will be reseted to the global value when the connection returns to the pool). 
 - The second parameter means holdsMaster. The first time you ask for a connection with holdsMaster in true, galeraClient will choose a master node and all the following connections asked with **holdsMaster=true** will be from that master node (GaleraClient only chooses a new master node when the current one is marked as down/removed). It is a useful feature when you want all your writes in the same node of the cluster.   
 
-
 #### 3) Releasing resources
 ```java
-client.shutdown()
+connection.close();
+
+client.shutdown();
 ```
+The `connection.close()` returns the connection to the pool and `client.shutdown()`  stops all the underlying machinery of the client.   
 
 ## Implementation details
 
@@ -81,3 +90,4 @@ client.shutdown()
 
 `galera-java-client` is open to the community to collaborations and contributions
 
+[source code]: https://github.com/despegar/galera-java-client/blob/master/src/main/java/com/despegar/jdbc/galera/GaleraClient.java#L229

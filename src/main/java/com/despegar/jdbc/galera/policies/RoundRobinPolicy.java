@@ -31,7 +31,18 @@ public class RoundRobinPolicy implements ElectionNodePolicy {
             LOG.error("NoHostAvailableException - Active node count is zero");
             throw new NoHostAvailableException();
         }
-        return nextNodeIndex.incrementAndGet() % activeNodesCount;
+
+        return getNextIndex() % activeNodesCount;
+    }
+
+    private int getNextIndex() {
+        int nextIndex = nextNodeIndex.getAndIncrement();
+
+        if (nextIndex > 1000000) {
+            nextNodeIndex.set(0);
+        }
+
+        return nextIndex;
     }
 
 }

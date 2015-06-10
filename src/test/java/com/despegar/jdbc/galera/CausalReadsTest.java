@@ -19,7 +19,7 @@ import org.junit.Test;
 @Ignore(value = "Ignoring because of bad configuration: host, database, user, ..")
 public class CausalReadsTest {
     private ArrayList<String> seeds = new ArrayList<String>(Arrays.asList("<host:port>"));
-    private ClientSettings clientSettings = new ClientSettings(seeds, 5, new GaleraClientLoggingListener(), null);
+    private ClientSettings clientSettings = new ClientSettings(seeds, 5, new GaleraClientLoggingListener(), null, null);
     private DiscoverSettings discoverSettings = new DiscoverSettings(2000, false);
     private GaleraDB galeraDB = new GaleraDB("<database>", "<user>", "<pwd>");
     private PoolSettings poolSettings = new PoolSettings(2, 5000, 5000, 10000, 30000);

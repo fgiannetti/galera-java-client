@@ -19,7 +19,9 @@ public class RoundRobinPolicy implements ElectionNodePolicy {
     @Override
     public String chooseNode(List<String> activeNodes) {
         String selectedNode = activeNodes.get(nextNodeIndex(activeNodes));
-        LOG.debug("Selected roundRobin node {}", selectedNode);
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Selected roundRobin node {}", selectedNode);
+        }
         return selectedNode;
     }
 

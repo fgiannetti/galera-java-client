@@ -46,10 +46,15 @@ public class GaleraClient {
 
     private void discovery() {
         try {
-            LOG.debug("Discovering Galera cluster...");
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Discovering Galera cluster...");
+            }
             discoverActiveNodes();
             testDownedNodes();
-            LOG.debug("Active nodes: {},  Downed nodes: {}", activeNodes, downedNodes);
+
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Active nodes: {},  Downed nodes: {}", activeNodes, downedNodes);
+            }
         } catch (Throwable reason) {
             LOG.error("Galera discovery failed", reason);
         }
@@ -60,7 +65,9 @@ public class GaleraClient {
             try {
                 discover(downedNode);
                 if (nodes.containsKey(downedNode) && !(nodes.get(downedNode).status().isDonor() && discoverSettings.ignoreDonor) && nodes.get(downedNode).status().isPrimary()) {
-                    LOG.debug("Will activate a previous downed node: {}", downedNode);
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("Will activate a previous downed node: {}", downedNode);
+                    }
                     activate(downedNode);
                 }
             } catch (Exception e) {
@@ -71,7 +78,9 @@ public class GaleraClient {
 
     private void activate(String downedNode) {
         if (!activeNodes.contains(downedNode)) {
-            LOG.debug("Activating node:  {}", downedNode);
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Activating node:  {}", downedNode);
+            }
 
             nodes.get(downedNode).onActivate();
             activeNodes.add(downedNode);
@@ -82,7 +91,9 @@ public class GaleraClient {
     }
 
     private void down(String node, String cause) {
-        LOG.debug("Marking node {} as down due to {}", node, cause);
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Marking node {} as down due to {}", node, cause);
+        }
         activeNodes.remove(node);
         if (!downedNodes.contains(node)) {
             downedNodes.add(node);
@@ -119,7 +130,7 @@ public class GaleraClient {
     }
 
     private void shutdownGaleraNode(String node) {
-        LOG.info("Shutting down galera node " + node);
+        LOG.info("Shutting down galera node {}", node);
         GaleraNode galeraNode = nodes.get(node);
         if (galeraNode != null) {
             galeraNode.shutdown();
@@ -132,13 +143,17 @@ public class GaleraClient {
         galeraNode.refreshStatus();
         GaleraStatus status = galeraNode.status();
         if (!status.isPrimary()) {
-            LOG.debug("On discover - Non primary node " + node);
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("On discover - Non primary node {}", node);
+            }
             down(node, "non Primary");
             return;
         }
 
         if (!status.isSynced() && (discoverSettings.ignoreDonor || !status.isDonor())) {
-            LOG.debug("On discover - State not ready [" + status.state() + "] - Ignore donor [" + discoverSettings.ignoreDonor + "] : " + node);
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("On discover - State not ready [{}] - Ignore donor [{}] : {}", status.state(), discoverSettings.ignoreDonor, node);
+            }
             down(node, "state not ready: " + status.state());
             return;
         }
@@ -196,7 +211,9 @@ public class GaleraClient {
 
     public Connection getConnection(ConsistencyLevel consistencyLevel, boolean holdsMaster) throws Exception {
         GaleraNode galeraNode = selectNode(holdsMaster);
-        LOG.debug("Getting connection from node " + (holdsMaster ? "[master] " : "") + galeraNode.node);
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Getting connection from node " + (holdsMaster ? "[master] " : "") + galeraNode.node);
+        }
         return galeraNode.getConnection(consistencyLevel);
     }
 

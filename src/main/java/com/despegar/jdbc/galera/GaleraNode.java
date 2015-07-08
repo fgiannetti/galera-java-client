@@ -16,6 +16,9 @@ import java.util.Map;
 public class GaleraNode {
     private static final Logger LOG = LoggerFactory.getLogger(GaleraNode.class);
 
+    private static final String QUERY_STATUS = "SHOW STATUS LIKE 'wsrep_%'";
+    private static final String QUERY_GLOBAL_VARIABLES = "SHOW GLOBAL VARIABLES WHERE variable_name in ('wsrep_sync_wait', 'wsrep_causal_reads');";
+
     public final String node;
     private final GaleraDB galeraDB;
     private final PoolSettings poolSettings;
@@ -24,7 +27,7 @@ public class GaleraNode {
     private volatile GaleraStatus status;
 
     public GaleraNode(String node, GaleraDB galeraDB, PoolSettings poolSettings) {
-        LOG.info("Creating galera node " + node);
+        LOG.info("Creating galera node {}", node);
         this.node = node;
         this.galeraDB = galeraDB;
         this.poolSettings = poolSettings;
@@ -54,8 +57,8 @@ public class GaleraNode {
     }
 
     public void refreshStatus() throws Exception {
-        Map<String, String> statusMap = queryStatus("SHOW STATUS LIKE 'wsrep_%'");
-        Map<String, String> globalVariablesMap = queryStatus("SHOW GLOBAL VARIABLES WHERE variable_name in ('wsrep_sync_wait', 'wsrep_causal_reads');");
+        Map<String, String> statusMap = queryStatus(QUERY_STATUS);
+        Map<String, String> globalVariablesMap = queryStatus(QUERY_GLOBAL_VARIABLES);
         statusMap.putAll(globalVariablesMap);
 
         status = new GaleraStatus(statusMap);
@@ -64,9 +67,10 @@ public class GaleraNode {
     private Map<String, String> queryStatus(String query) throws Exception {
         Connection connection = statusDataSource.getConnection();
         PreparedStatement preparedStatement = null;
+        ResultSet resultSet = null;
         try {
             preparedStatement = connection.prepareStatement(query);
-            ResultSet resultSet = preparedStatement.executeQuery();
+            resultSet = preparedStatement.executeQuery();
             Map<String, String> statusMap = new HashMap<String, String>();
             while (resultSet.next()) {
                 String statusKey = resultSet.getString(1);
@@ -75,6 +79,7 @@ public class GaleraNode {
             }
             return statusMap;
         } finally {
+            tryClose(resultSet);
             tryClose(preparedStatement);
             tryClose(connection);
         }

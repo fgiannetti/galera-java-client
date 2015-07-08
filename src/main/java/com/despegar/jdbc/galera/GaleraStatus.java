@@ -1,8 +1,21 @@
 package com.despegar.jdbc.galera;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Map;
 
 public class GaleraStatus {
+    private static final String INCOMING_ADDRESSES = "wsrep_incoming_addresses";
+    private static final String PRIMARY = "Primary";
+
+    private static final String SYNC_WAIT_VARIABLE = "wsrep_sync_wait";
+    private static final String CAUSAL_READS_VARIABLE = "wsrep_causal_reads";
+
+    private static final String CLUSTER_STATUS = "wsrep_cluster_status";
+    private static final String STATUS_DONOR = "Donor/Desynced";
+    private static final String STATUS_SYNCED = "Synced";
+    private static final String STATE_VARIABLE = "wsrep_local_state_comment";
+
     private final Map<String, String> statusMap;
 
     public GaleraStatus(Map<String, String> statusMap) {
@@ -10,36 +23,36 @@ public class GaleraStatus {
     }
     
     public Collection<String> getClusterNodes() {
-        return Arrays.asList(statusMap.get("wsrep_incoming_addresses").split(","));
+        return Arrays.asList(statusMap.get(INCOMING_ADDRESSES).split(","));
     }
 
     public boolean isPrimary() {
-        return statusMap.get("wsrep_cluster_status").equals("Primary");
+        return statusMap.get(CLUSTER_STATUS).equals(PRIMARY);
     }
 
     public boolean isSynced() {
-        return state().equals("Synced");
+        return state().equals(STATUS_SYNCED);
     }
 
     public String state() {
-        return statusMap.get("wsrep_local_state_comment");
+        return statusMap.get(STATE_VARIABLE);
     }
 
     public boolean isDonor() {
-        return state().equals("Donor/Desynced");
+        return state().equals(STATUS_DONOR);
     }
 
     public boolean supportsSyncWait() {
-        return statusMap.keySet().contains("wsrep_sync_wait");
+        return statusMap.keySet().contains(SYNC_WAIT_VARIABLE);
     }
 
     public String getGlobalConsistencyLevel() {
         if (supportsSyncWait()) {
-            return statusMap.get("wsrep_sync_wait");
+            return statusMap.get(SYNC_WAIT_VARIABLE);
         }
 
         // Earlier mariadb versions
-        return statusMap.get("wsrep_causal_reads");
+        return statusMap.get(CAUSAL_READS_VARIABLE);
     }
 
 }

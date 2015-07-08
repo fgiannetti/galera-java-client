@@ -7,20 +7,22 @@
     <groupId>com.despegar</groupId>
     <artifactId>galera-java-client</artifactId>
     <packaging>jar</packaging>
-    <version>1.0.1</version>
+	<version>1.0.3</version>
 
-    <name>galera-java-client</name>
-    <url>https://github.com/despegar/galera-java-client</url>
-    <description>A simple Java client for MariaDB Galera Cluster and Percona XtraDB Cluster. It is designed to be an alternative to connect JVM app to MariaDB/Percona galera nodes without HAProxy</description>
+	<name>galera-java-client</name>
+	<url>https://github.com/despegar/galera-java-client</url>
+	<description>A simple Java client for MariaDB Galera Cluster and Percona XtraDB Cluster. It is designed to be an alternative to connect JVM app to
+		MariaDB/Percona galera nodes without HAProxy
+	</description>
 
-    <licenses>
-        <license>
-            <name>Apache 2</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-        </license>
-    </licenses>
+	<licenses>
+		<license>
+			<name>Apache 2</name>
+			<url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+		</license>
+	</licenses>
 
-    <scm>
+	<scm>
         <url>git@github.com:despegar/galera-java-client.git</url>
         <connection>scm:git:git@github.com:despegar/galera-java-client.git</connection>
     </scm>

@@ -23,45 +23,45 @@
 	</licenses>
 
 	<scm>
-        <url>git@github.com:despegar/galera-java-client.git</url>
-        <connection>scm:git:git@github.com:despegar/galera-java-client.git</connection>
-    </scm>
+		<url>git@github.com:despegar/galera-java-client.git</url>
+		<connection>scm:git:git@github.com:despegar/galera-java-client.git</connection>
+	</scm>
 
-    <developers>
-        <developer>
-            <name>Despegar Hotels Tech</name>
-        </developer>
-    </developers>
+	<developers>
+		<developer>
+			<name>Despegar Hotels Tech</name>
+		</developer>
+	</developers>
 
-    <dependencies>
-        <dependency>
-            <groupId>com.zaxxer</groupId>
-            <artifactId>HikariCP-java6</artifactId>
-            <version>2.3.8</version>
-        </dependency>
-        <dependency>
-            <groupId>org.mariadb.jdbc</groupId>
-            <artifactId>mariadb-java-client</artifactId>
-            <version>1.1.7</version>
-        </dependency>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>1.1.2</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.12</version>
-            <scope>test</scope>
-        </dependency>
+	<dependencies>
+		<dependency>
+			<groupId>com.zaxxer</groupId>
+			<artifactId>HikariCP-java6</artifactId>
+			<version>2.3.8</version>
+		</dependency>
+		<dependency>
+			<groupId>org.mariadb.jdbc</groupId>
+			<artifactId>mariadb-java-client</artifactId>
+			<version>1.1.7</version>
+		</dependency>
+		<dependency>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-classic</artifactId>
+			<version>1.1.2</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.12</version>
+			<scope>test</scope>
+		</dependency>
 
-    </dependencies>
+	</dependencies>
 
-    <distributionManagement>
-        <snapshotRepository>
-            <id>ossrh</id>
+	<distributionManagement>
+		<snapshotRepository>
+		<id>ossrh</id>
             <url>https://oss.sonatype.org/content/repositories/snapshots</url>
         </snapshotRepository>
         <repository>

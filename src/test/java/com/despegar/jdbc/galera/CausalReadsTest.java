@@ -5,6 +5,9 @@ import com.despegar.jdbc.galera.settings.ClientSettings;
 import com.despegar.jdbc.galera.settings.DiscoverSettings;
 import com.despegar.jdbc.galera.settings.PoolSettings;
 import org.junit.Assert;
+import org.junit.Ignore;
+import org.junit.Test;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -12,17 +15,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.UUID;
 
-import org.junit.Ignore;
-import org.junit.Test;
-
-
 @Ignore(value = "Ignoring because of bad configuration: host, database, user, ..")
 public class CausalReadsTest {
     private ArrayList<String> seeds = new ArrayList<String>(Arrays.asList("<host:port>"));
     private ClientSettings clientSettings = new ClientSettings(seeds, 5, new GaleraClientLoggingListener(), null, null);
     private DiscoverSettings discoverSettings = new DiscoverSettings(2000, false);
     private GaleraDB galeraDB = new GaleraDB("<database>", "<user>", "<pwd>");
-    private PoolSettings poolSettings = new PoolSettings(2, 5000, 5000, 10000, 30000);
+    private PoolSettings poolSettings = new PoolSettings(2, 1, 5000, 5000, 10000, 30000);
 
     @Test
     public void causalReadsOn() throws Exception {
@@ -35,7 +34,6 @@ public class CausalReadsTest {
         int totalRetries = test(false);
         Assert.assertTrue(totalRetries > 0);
     }
-
 
     private int test(Boolean causalReads) throws Exception {
         System.out.println("Starting test");
@@ -69,31 +67,25 @@ public class CausalReadsTest {
                 ResultSet resultSet = readStatement.executeQuery();
                 String result = resultSet.next() ? resultSet.getString(1) : "";
                 System.out.println("result " + result + " uuid " + uuid);
-                if (result.equals(uuid))
-                    endLoop = true;
-                else
-                    retries += 1;
-
+                if (result.equals(uuid)) { endLoop = true; } else { retries += 1; }
 
                 if (resultSet != null) {
                     resultSet.close();
                 }
 
-
             }
 
             totalRetries += retries;
-            System.out.println("--------------------------------------------------round " + i + " number of retries: " + retries + "--------------------------------");
+            System.out.println(
+                    "--------------------------------------------------round " + i + " number of retries: " + retries + "--------------------------------");
         }
 
         System.out.println("-------------------------------------------------- Total Retries: " + totalRetries + "--------------------------------");
 
-
-        if (writeStatement != null) writeStatement.close();
-        if (readStatement != null) readStatement.close();
+        if (writeStatement != null) { writeStatement.close(); }
+        if (readStatement != null) { readStatement.close(); }
         writerConnection.close();
         readerConnection.close();
-
 
         writerClient.shutdown();
         readerClient.shutdown();
@@ -114,7 +106,8 @@ public class CausalReadsTest {
             throw new RuntimeException("Don't use this constructor");
         }
 
-        public GaleraClientTest(String nodeName, ClientSettings clientSettings, DiscoverSettings discoverSettings, GaleraDB galeraDB, PoolSettings poolSettings) {
+        public GaleraClientTest(String nodeName, ClientSettings clientSettings, DiscoverSettings discoverSettings, GaleraDB galeraDB,
+                                PoolSettings poolSettings) {
             super(clientSettings, discoverSettings, galeraDB, poolSettings);
             this.node = nodeName;
         }

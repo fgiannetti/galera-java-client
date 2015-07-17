@@ -17,6 +17,10 @@ import java.sql.PreparedStatement;
 public class GaleraProxyConnection implements InvocationHandler {
     private static final Logger LOG = LoggerFactory.getLogger(GaleraProxyConnection.class);
 
+    private static final String CLOSE_METHOD = "close";
+    private static final String SET_SESSION_SYNC_WAIT = "SET SESSION wsrep_sync_wait = ?";
+    private static final String SET_SESSION_CAUSAL_READS = "SET SESSION wsrep_causal_reads = ?";
+
     private Connection underlyingConnection;
     private String globalConsistencyLevel;
     private boolean supportsSyncWait;
@@ -33,7 +37,7 @@ public class GaleraProxyConnection implements InvocationHandler {
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-        if ("close".equals(method.getName())) {
+        if (CLOSE_METHOD.equals(method.getName())) {
             LOG.info("Setting wsrep_sync_wait to global default before closing connection {}", globalConsistencyLevel);
             setConnectionConsistencyLevel(globalConsistencyLevel);
         }
@@ -41,13 +45,14 @@ public class GaleraProxyConnection implements InvocationHandler {
     }
 
     public static Connection create(Connection toWrap, ConsistencyLevel connectionConsistencyLevel, GaleraStatus galeraStatus) throws Exception {
-        return (Connection)(Proxy.newProxyInstance(Connection.class.getClassLoader(),
-                new Class[]{Connection.class},
-                new GaleraProxyConnection(toWrap, connectionConsistencyLevel, galeraStatus)));
+        return (Connection) (Proxy.newProxyInstance(Connection.class.getClassLoader(),
+                                                    new Class[] { Connection.class },
+                                                    new GaleraProxyConnection(toWrap, connectionConsistencyLevel, galeraStatus)));
     }
 
     private void validate(ConsistencyLevel connectionConsistencyLevel) {
-        if (!this.supportsSyncWait && connectionConsistencyLevel != ConsistencyLevel.CAUSAL_READS_ON && connectionConsistencyLevel != ConsistencyLevel.CAUSAL_READS_OFF) {
+        if (!this.supportsSyncWait && connectionConsistencyLevel != ConsistencyLevel.CAUSAL_READS_ON
+                && connectionConsistencyLevel != ConsistencyLevel.CAUSAL_READS_OFF) {
             LOG.warn("Your MariaDB version does not support syncWait and you are trying to configure connection consistency level to {}",
                      connectionConsistencyLevel);
         }
@@ -59,11 +64,11 @@ public class GaleraProxyConnection implements InvocationHandler {
         try {
             if (this.supportsSyncWait) {
                 LOG.info("Setting wsrep_sync_wait to {}", consistencyLevel);
-                preparedStatement = underlyingConnection.prepareStatement("SET SESSION wsrep_sync_wait = ?");
+                preparedStatement = underlyingConnection.prepareStatement(SET_SESSION_SYNC_WAIT);
                 preparedStatement.setInt(1, Integer.valueOf(consistencyLevel));
             } else {
                 LOG.info("Setting wsrep_causal_reads to {}", consistencyLevel);
-                preparedStatement = underlyingConnection.prepareStatement("SET SESSION wsrep_causal_reads = ?");
+                preparedStatement = underlyingConnection.prepareStatement(SET_SESSION_CAUSAL_READS);
                 preparedStatement.setString(1, consistencyLevel);
             }
 

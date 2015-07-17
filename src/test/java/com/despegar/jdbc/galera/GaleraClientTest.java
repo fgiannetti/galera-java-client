@@ -1,7 +1,6 @@
 package com.despegar.jdbc.galera;
 
 import java.sql.Connection;
-import java.sql.SQLException;
 
 public class GaleraClientTest {
 
@@ -14,7 +13,8 @@ public class GaleraClientTest {
             GaleraClient client = new GaleraClient.Builder().seeds("maria-1.mg10.dev.docker")
                     .database("").user("despegar").password("despegar").discoverPeriod(2000)
                     .connectTimeout(500).connectionTimeout(1000).readTimeout(1000)
-                    .maxConnectionsPerHost(1).idleTimeout(30000).ignoreDonor(true).retriesToGetConnection(5).build();
+                    .maxConnectionsPerHost(3).minConnectionsIdlePerHost(1).idleTimeout(30000)
+                    .ignoreDonor(true).retriesToGetConnection(5).build();
 
         Connection connection = null;
         try {

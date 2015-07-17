@@ -250,6 +250,7 @@ public class GaleraClient {
         private String password;
         private String seeds;
         private int maxConnectionsPerHost;
+        private int minConnectionsIdlePerHost;
         private long discoverPeriod;
         private long connectTimeout;
         private long connectionTimeout;
@@ -286,6 +287,11 @@ public class GaleraClient {
 
         public Builder maxConnectionsPerHost(int maxConnectionsPerHost) {
             this.maxConnectionsPerHost = maxConnectionsPerHost;
+            return this;
+        }
+
+        public Builder minConnectionsIdlePerHost(int minConnectionsPerHost) {
+            this.minConnectionsIdlePerHost = minConnectionsPerHost;
             return this;
         }
 
@@ -326,7 +332,8 @@ public class GaleraClient {
             ClientSettings clientSettings = new ClientSettings(seeds(), retriesToGetConnection, (listener != null) ? listener : new GaleraClientLoggingListener(), (masterPolicy != null) ? masterPolicy : defaultMasterPolicy, (nodeSelectionPolicy != null) ? nodeSelectionPolicy : defaultNodeSelectionPolicy);
             DiscoverSettings discoverSettings = new DiscoverSettings(discoverPeriod, ignoreDonor);
             GaleraDB galeraDB = new GaleraDB(database, user, password);
-            PoolSettings poolSettings = new PoolSettings(maxConnectionsPerHost, connectTimeout, connectionTimeout, readTimeout, idleTimeout);
+            PoolSettings poolSettings = new PoolSettings(maxConnectionsPerHost, minConnectionsIdlePerHost, connectTimeout, connectionTimeout, readTimeout,
+                                                         idleTimeout);
 
             return new GaleraClient(clientSettings, discoverSettings, galeraDB, poolSettings);
         }

@@ -44,28 +44,35 @@ public class GaleraNode {
         config.setPassword(galeraDB.password);
         config.setConnectionTimeout(poolSettings.connectionTimeout);
         config.setMaximumPoolSize(poolSettings.maxConnectionsPerHost);
+        config.setMinimumIdle(poolSettings.minConnectionsIdlePerHost);
+        config.setIdleTimeout(poolSettings.idleTimeout);
         config.setInitializationFailFast(false);
         config.addDataSourceProperty("cachePrepStmts", "true");
         config.addDataSourceProperty("prepStmtCacheSize", "250");
         config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
         config.addDataSourceProperty("useServerPrepStmts", "true");
+        config.addDataSourceProperty("maintainTimeStats", "false");
         config.addDataSourceProperty("connectTimeout", String.valueOf(poolSettings.connectTimeout));
         config.addDataSourceProperty("socketTimeout", String.valueOf(poolSettings.readTimeout));
-        config.setIdleTimeout(poolSettings.idleTimeout);
 
         return config;
     }
 
     public void refreshStatus() throws Exception {
-        Map<String, String> statusMap = queryStatus(QUERY_STATUS);
-        Map<String, String> globalVariablesMap = queryStatus(QUERY_GLOBAL_VARIABLES);
-        statusMap.putAll(globalVariablesMap);
+        Connection connection = statusDataSource.getConnection();
 
-        status = new GaleraStatus(statusMap);
+        try {
+            Map<String, String> statusMap = queryStatus(connection, QUERY_STATUS);
+            Map<String, String> globalVariablesMap = queryStatus(connection, QUERY_GLOBAL_VARIABLES);
+            statusMap.putAll(globalVariablesMap);
+
+            status = new GaleraStatus(statusMap);
+        } finally {
+            tryClose(connection);
+        }
     }
 
-    private Map<String, String> queryStatus(String query) throws Exception {
-        Connection connection = statusDataSource.getConnection();
+    private Map<String, String> queryStatus(Connection connection, String query) throws Exception {
         PreparedStatement preparedStatement = null;
         ResultSet resultSet = null;
         try {
@@ -81,7 +88,6 @@ public class GaleraNode {
         } finally {
             tryClose(resultSet);
             tryClose(preparedStatement);
-            tryClose(connection);
         }
     }
 

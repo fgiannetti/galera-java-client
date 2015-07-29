@@ -52,7 +52,7 @@ But you can also use something like `client.getConnection(ConsistencyLevel.SYNC_
 #### 1) Build the client
 
 ```java
-  GaleraClient client = new GaleraClient.Builder()
+  GaleraDataSource client = new GaleraDataSource.Builder()
                             .seeds("maria-1, maria-2")
                             .database("myDatabase")
                             .user("user")

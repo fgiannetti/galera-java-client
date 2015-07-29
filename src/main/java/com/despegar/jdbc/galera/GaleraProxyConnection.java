@@ -8,6 +8,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.SQLException;
 
 /**
  * This proxy is responsible for managing wsrep_sync_wait (wsrep_causal_reads on earlier mariaDB versions) at connection level.
@@ -25,7 +26,7 @@ public class GaleraProxyConnection implements InvocationHandler {
     private String globalConsistencyLevel;
     private boolean supportsSyncWait;
 
-    public GaleraProxyConnection(Connection conn, ConsistencyLevel connectionConsistencyLevel, GaleraStatus galeraStatus) throws Exception {
+    public GaleraProxyConnection(Connection conn, ConsistencyLevel connectionConsistencyLevel, GaleraStatus galeraStatus) throws SQLException {
         this.underlyingConnection = conn;
         this.supportsSyncWait = galeraStatus.supportsSyncWait();
         this.globalConsistencyLevel = galeraStatus.getGlobalConsistencyLevel();
@@ -44,7 +45,7 @@ public class GaleraProxyConnection implements InvocationHandler {
         return method.invoke(underlyingConnection, args);
     }
 
-    public static Connection create(Connection toWrap, ConsistencyLevel connectionConsistencyLevel, GaleraStatus galeraStatus) throws Exception {
+    public static Connection create(Connection toWrap, ConsistencyLevel connectionConsistencyLevel, GaleraStatus galeraStatus) throws SQLException {
         return (Connection) (Proxy.newProxyInstance(Connection.class.getClassLoader(),
                                                     new Class[] { Connection.class },
                                                     new GaleraProxyConnection(toWrap, connectionConsistencyLevel, galeraStatus)));
@@ -58,7 +59,7 @@ public class GaleraProxyConnection implements InvocationHandler {
         }
     }
 
-    private void setConnectionConsistencyLevel(String consistencyLevel) throws Exception {
+    private void setConnectionConsistencyLevel(String consistencyLevel) throws SQLException {
         PreparedStatement preparedStatement = null;
 
         try {

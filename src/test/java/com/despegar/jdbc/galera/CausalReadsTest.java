@@ -1,7 +1,7 @@
 package com.despegar.jdbc.galera;
 
-import com.despegar.jdbc.galera.listener.GaleraClientLoggingListener;
-import com.despegar.jdbc.galera.settings.ClientSettings;
+import com.despegar.jdbc.galera.listener.GaleraDataSourceLoggingListener;
+import com.despegar.jdbc.galera.settings.DataSourceSettings;
 import com.despegar.jdbc.galera.settings.DiscoverSettings;
 import com.despegar.jdbc.galera.settings.PoolSettings;
 import org.junit.Assert;
@@ -18,10 +18,10 @@ import java.util.UUID;
 @Ignore(value = "Ignoring because of bad configuration: host, database, user, ..")
 public class CausalReadsTest {
     private ArrayList<String> seeds = new ArrayList<String>(Arrays.asList("<host:port>"));
-    private ClientSettings clientSettings = new ClientSettings(seeds, 5, new GaleraClientLoggingListener(), null, null);
+    private DataSourceSettings dataSourceSettings = new DataSourceSettings(seeds, 5, new GaleraDataSourceLoggingListener(), null, null);
     private DiscoverSettings discoverSettings = new DiscoverSettings(2000, false);
     private GaleraDB galeraDB = new GaleraDB("<database>", "<user>", "<pwd>");
-    private PoolSettings poolSettings = new PoolSettings(2, 1, 5000, 5000, 10000, 30000);
+    private PoolSettings poolSettings = new PoolSettings(2, 1, 5000, 5000, 10000, 30000, true);
 
     @Test
     public void causalReadsOn() throws Exception {
@@ -38,13 +38,13 @@ public class CausalReadsTest {
     private int test(Boolean causalReads) throws Exception {
         System.out.println("Starting test");
 
-        GaleraClient writerClient = new GaleraClientTest("<hostA:port>", clientSettings, discoverSettings, galeraDB, poolSettings);
-        GaleraClient readerClient = new GaleraClientTest("<hostB:port>", clientSettings, discoverSettings, galeraDB, poolSettings);
+        GaleraDataSource writerDatasource = new GaleraDataSourceTest("<hostA:port>", dataSourceSettings, discoverSettings, galeraDB, poolSettings);
+        GaleraDataSource readerDataSource = new GaleraDataSourceTest("<hostB:port>", dataSourceSettings, discoverSettings, galeraDB, poolSettings);
 
         int rounds = 1000;
 
-        Connection writerConnection = writerClient.getConnection(causalReads ? ConsistencyLevel.CAUSAL_READS_ON : ConsistencyLevel.CAUSAL_READS_OFF, false);
-        Connection readerConnection = readerClient.getConnection(causalReads ? ConsistencyLevel.CAUSAL_READS_ON : ConsistencyLevel.CAUSAL_READS_OFF, false);
+        Connection writerConnection = writerDatasource.getConnection(causalReads ? ConsistencyLevel.CAUSAL_READS_ON : ConsistencyLevel.CAUSAL_READS_OFF, false);
+        Connection readerConnection = readerDataSource.getConnection(causalReads ? ConsistencyLevel.CAUSAL_READS_ON : ConsistencyLevel.CAUSAL_READS_OFF, false);
 
         int totalRetries = 0;
 
@@ -69,9 +69,7 @@ public class CausalReadsTest {
                 System.out.println("result " + result + " uuid " + uuid);
                 if (result.equals(uuid)) { endLoop = true; } else { retries += 1; }
 
-                if (resultSet != null) {
                     resultSet.close();
-                }
 
             }
 
@@ -87,13 +85,13 @@ public class CausalReadsTest {
         writerConnection.close();
         readerConnection.close();
 
-        writerClient.shutdown();
-        readerClient.shutdown();
+        writerDatasource.shutdown();
+        readerDataSource.shutdown();
 
         return totalRetries;
     }
 
-    private class GaleraClientTest extends GaleraClient {
+    private class GaleraDataSourceTest extends GaleraDataSource {
         private String node;
 
         @Override
@@ -101,14 +99,14 @@ public class CausalReadsTest {
             return nodes.get(node);
         }
 
-        protected GaleraClientTest(ClientSettings clientSettings, DiscoverSettings discoverSettings, GaleraDB galeraDB, PoolSettings poolSettings) {
-            super(clientSettings, discoverSettings, galeraDB, poolSettings);
+        protected GaleraDataSourceTest(DataSourceSettings dataSourceSettings, DiscoverSettings discoverSettings, GaleraDB galeraDB, PoolSettings poolSettings) {
+            super(dataSourceSettings, discoverSettings, galeraDB, poolSettings);
             throw new RuntimeException("Don't use this constructor");
         }
 
-        public GaleraClientTest(String nodeName, ClientSettings clientSettings, DiscoverSettings discoverSettings, GaleraDB galeraDB,
-                                PoolSettings poolSettings) {
-            super(clientSettings, discoverSettings, galeraDB, poolSettings);
+        public GaleraDataSourceTest(String nodeName, DataSourceSettings dataSourceSettings, DiscoverSettings discoverSettings, GaleraDB galeraDB,
+                                    PoolSettings poolSettings) {
+            super(dataSourceSettings, discoverSettings, galeraDB, poolSettings);
             this.node = nodeName;
         }
     }

@@ -1,24 +1,25 @@
 package com.despegar.jdbc.galera;
 
-import com.despegar.jdbc.galera.listener.GaleraClientListener;
-import com.despegar.jdbc.galera.listener.GaleraClientLoggingListener;
+import com.despegar.jdbc.galera.listener.GaleraDataSourceListener;
+import com.despegar.jdbc.galera.listener.GaleraDataSourceLoggingListener;
 import com.despegar.jdbc.galera.policies.ElectionNodePolicy;
 import com.despegar.jdbc.galera.policies.MasterSortingNodesPolicy;
 import com.despegar.jdbc.galera.policies.RoundRobinPolicy;
-import com.despegar.jdbc.galera.settings.ClientSettings;
+import com.despegar.jdbc.galera.settings.DataSourceSettings;
 import com.despegar.jdbc.galera.settings.DiscoverSettings;
 import com.despegar.jdbc.galera.settings.PoolSettings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.*;
 
-public class GaleraClient {
+public class GaleraDataSource extends AbstractGaleraDataSource {
 
-    private static final Logger LOG = LoggerFactory.getLogger(GaleraClient.class);
+    private static final Logger LOG = LoggerFactory.getLogger(GaleraDataSource.class);
 
     protected Map<String, GaleraNode> nodes = new ConcurrentHashMap<String, GaleraNode>();
     private List<String> activeNodes = new CopyOnWriteArrayList<String>();
@@ -27,7 +28,7 @@ public class GaleraClient {
     private GaleraDB galeraDB;
     private PoolSettings poolSettings;
     private DiscoverSettings discoverSettings;
-    private ClientSettings clientSettings;
+    private DataSourceSettings dataSourceSettings;
     private Runnable discoverRunnable = new Runnable() {
         @Override
         public void run() {
@@ -35,12 +36,12 @@ public class GaleraClient {
         }
     };
 
-    protected GaleraClient(ClientSettings clientSettings, DiscoverSettings discoverSettings, GaleraDB galeraDB, PoolSettings poolSettings) {
+    protected GaleraDataSource(DataSourceSettings dataSourceSettings, DiscoverSettings discoverSettings, GaleraDB galeraDB, PoolSettings poolSettings) {
         this.galeraDB = galeraDB;
         this.poolSettings = poolSettings;
         this.discoverSettings = discoverSettings;
-        this.clientSettings = clientSettings;
-        registerNodes(clientSettings.seeds);
+        this.dataSourceSettings = dataSourceSettings;
+        registerNodes(dataSourceSettings.seeds);
         startDiscovery(discoverSettings.discoverPeriod);
     }
 
@@ -86,7 +87,7 @@ public class GaleraClient {
             activeNodes.add(downedNode);
             downedNodes.remove(downedNode);
 
-            clientSettings.galeraClientListener.onActivatingNode(downedNode);
+            dataSourceSettings.galeraDataSourceListener.onActivatingNode(downedNode);
         }
     }
 
@@ -100,7 +101,7 @@ public class GaleraClient {
         }
         closeConnections(node);
 
-        clientSettings.galeraClientListener.onMarkingNodeAsDown(node, cause);
+        dataSourceSettings.galeraDataSourceListener.onMarkingNodeAsDown(node, cause);
     }
 
     private void discoverActiveNodes() {
@@ -119,7 +120,7 @@ public class GaleraClient {
         shutdownGaleraNode(node);
         nodes.remove(node);
 
-        clientSettings.galeraClientListener.onRemovingNode(node);
+        dataSourceSettings.galeraDataSourceListener.onRemovingNode(node);
     }
 
     private void closeConnections(String node) {
@@ -205,11 +206,19 @@ public class GaleraClient {
         }
     }
 
+    @Override
     public Connection getConnection() throws SQLException {
         return selectNode(false).getConnection();
     }
 
-    public Connection getConnection(ConsistencyLevel consistencyLevel, boolean holdsMaster) throws Exception {
+    /**
+     * @param consistencyLevel Set the consistencyLevel needed.
+     * @param holdsMaster if True use the {@link ElectionNodePolicy} set in
+     * {@link DataSourceSettings#masterPolicy}, otherwise use {@link DataSourceSettings#nodeSelectionPolicy}
+     * @return a {@link Connection}
+     * @throws SQLException
+     */
+public Connection getConnection(ConsistencyLevel consistencyLevel, boolean holdsMaster) throws SQLException {
         GaleraNode galeraNode = selectNode(holdsMaster);
         if (LOG.isDebugEnabled()) {
             LOG.debug("Getting connection from node " + (holdsMaster ? "[master] " : "") + galeraNode.node);
@@ -222,14 +231,14 @@ public class GaleraClient {
     }
 
     private GaleraNode getActiveGaleraNode(int retry, boolean holdsMaster) {
-        if (retry <= clientSettings.retriesToGetConnection) {
+        if (retry <= dataSourceSettings.retriesToGetConnection) {
             try {
-                ElectionNodePolicy policy = (holdsMaster)? clientSettings.masterPolicy : clientSettings.nodeSelectionPolicy;
+                ElectionNodePolicy policy = (holdsMaster)? dataSourceSettings.masterPolicy : dataSourceSettings.nodeSelectionPolicy;
                 GaleraNode galeraNode = nodes.get(policy.chooseNode(activeNodes));
 
                 return galeraNode != null ? galeraNode : getActiveGaleraNode(++retry, holdsMaster);
             } catch (Exception exception) {
-                LOG.warn("Error getting active galera node. Retry {}/{}. Reason {}", retry, clientSettings.retriesToGetConnection, exception);
+                LOG.warn("Error getting active galera node. Retry {}/{}. Reason {}", retry, dataSourceSettings.retriesToGetConnection, exception);
                 return getActiveGaleraNode(++retry, holdsMaster);
             }
         } else {
@@ -239,8 +248,26 @@ public class GaleraClient {
     }
 
     public void shutdown() {
-        LOG.info("Shutting down Galera Client...");
+        LOG.info("Shutting down Galera DataSource...");
         scheduler.shutdown();
+    }
+
+    @Override
+    public PrintWriter getLogWriter() throws SQLException {
+        for (GaleraNode galeraNode : nodes.values()) {
+            if(galeraNode.getLogWriter() != null)
+                return galeraNode.getLogWriter();
+        }
+
+        return null;
+    }
+
+    @Override
+    public void setLogWriter(PrintWriter out) throws SQLException {
+        for (GaleraNode galeraNode : nodes.values()) {
+
+            galeraNode.setLogWriter(out);
+        }
     }
 
     public static class Builder {
@@ -258,7 +285,8 @@ public class GaleraClient {
         private long idleTimeout;
         private boolean ignoreDonor = true;
         private int retriesToGetConnection = 3;
-        private GaleraClientListener listener;
+        private boolean autocommit = true; //JDBC default.
+        private GaleraDataSourceListener listener;
         private ElectionNodePolicy masterPolicy;
         private ElectionNodePolicy defaultMasterPolicy = new MasterSortingNodesPolicy();
         private ElectionNodePolicy nodeSelectionPolicy;
@@ -313,8 +341,8 @@ public class GaleraClient {
             return connectionTimeout(timeUnit.toMillis(connectionTimeout));
         }
 
-        public Builder listener(GaleraClientListener galeraClientListener) {
-            this.listener = galeraClientListener;
+        public Builder listener(GaleraDataSourceListener galeraDataSourceListener) {
+            this.listener = galeraDataSourceListener;
             return this;
         }
 
@@ -328,14 +356,19 @@ public class GaleraClient {
             return this;
         }
 
-        public GaleraClient build() {
-            ClientSettings clientSettings = new ClientSettings(seeds(), retriesToGetConnection, (listener != null) ? listener : new GaleraClientLoggingListener(), (masterPolicy != null) ? masterPolicy : defaultMasterPolicy, (nodeSelectionPolicy != null) ? nodeSelectionPolicy : defaultNodeSelectionPolicy);
+        public Builder autocommit(boolean autocommit) {
+            this.autocommit = autocommit;
+            return this;
+        }
+
+        public GaleraDataSource build() {
+            DataSourceSettings dataSourceSettings = new DataSourceSettings(seeds(), retriesToGetConnection, (listener != null) ? listener : new GaleraDataSourceLoggingListener(), (masterPolicy != null) ? masterPolicy : defaultMasterPolicy, (nodeSelectionPolicy != null) ? nodeSelectionPolicy : defaultNodeSelectionPolicy);
             DiscoverSettings discoverSettings = new DiscoverSettings(discoverPeriod, ignoreDonor);
             GaleraDB galeraDB = new GaleraDB(database, user, password);
             PoolSettings poolSettings = new PoolSettings(maxConnectionsPerHost, minConnectionsIdlePerHost, connectTimeout, connectionTimeout, readTimeout,
-                                                         idleTimeout);
+                                                         idleTimeout, autocommit);
 
-            return new GaleraClient(clientSettings, discoverSettings, galeraDB, poolSettings);
+            return new GaleraDataSource(dataSourceSettings, discoverSettings, galeraDB, poolSettings);
         }
 
         private ArrayList<String> seeds() {

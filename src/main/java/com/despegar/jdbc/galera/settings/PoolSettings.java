@@ -7,14 +7,16 @@ public class PoolSettings {
     public final long connectionTimeout;
     public final long readTimeout;
     public final long idleTimeout;
+    public final boolean autocommit;
 
     public PoolSettings(int maxConnectionsPerHost, int minConnectionsIdlePerHost, long connectTimeout, long connectionTimeout, long readTimeout,
-                        long idleTimeout) {
+                        long idleTimeout, boolean autocommit) {
         this.maxConnectionsPerHost = maxConnectionsPerHost;
         this.minConnectionsIdlePerHost = (minConnectionsIdlePerHost <= 0) ? maxConnectionsPerHost : minConnectionsIdlePerHost;
         this.connectTimeout = connectTimeout;
         this.connectionTimeout = connectionTimeout;
         this.readTimeout = readTimeout;
         this.idleTimeout = idleTimeout;
+        this.autocommit = autocommit;
     }
 }

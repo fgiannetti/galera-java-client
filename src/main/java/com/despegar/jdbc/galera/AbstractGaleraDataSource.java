@@ -1,7 +1,6 @@
 package com.despegar.jdbc.galera;
 
 import javax.sql.DataSource;
-import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
@@ -11,16 +10,6 @@ public abstract class AbstractGaleraDataSource implements DataSource {
 
     @Override
     public Connection getConnection(String username, String password) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
-    }
-
-    @Override
-    public PrintWriter getLogWriter() throws SQLException {
-        throw new SQLFeatureNotSupportedException();
-    }
-
-    @Override
-    public void setLogWriter(PrintWriter out) throws SQLException {
         throw new SQLFeatureNotSupportedException();
     }
 

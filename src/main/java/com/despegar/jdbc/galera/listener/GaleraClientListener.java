@@ -1,6 +1,6 @@
 package com.despegar.jdbc.galera.listener;
 
-public interface GaleraDataSourceListener {
+public interface GaleraClientListener {
 
     void onActivatingNode(String node);
 

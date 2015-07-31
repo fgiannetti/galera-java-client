@@ -3,8 +3,8 @@ package com.despegar.jdbc.galera.listener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class GaleraDataSourceLoggingListener implements GaleraDataSourceListener {
-    private static final Logger LOG = LoggerFactory.getLogger(GaleraDataSourceLoggingListener.class);
+public class GaleraClientLoggingListener implements GaleraClientListener {
+    private static final Logger LOG = LoggerFactory.getLogger(GaleraClientLoggingListener.class);
 
     @Override
     public void onActivatingNode(String node) {

@@ -21,7 +21,7 @@ public class CausalReadsTest {
     private ClientSettings clientSettings = new ClientSettings(seeds, 5, new GaleraClientLoggingListener(), null, null);
     private DiscoverSettings discoverSettings = new DiscoverSettings(2000, false);
     private GaleraDB galeraDB = new GaleraDB("<database>", "<user>", "<pwd>");
-    private PoolSettings poolSettings = new PoolSettings(2, 1, 5000, 5000, 10000, 30000);
+    private PoolSettings poolSettings = new PoolSettings(2, 1, 5000, 5000, 10000, 30000, true);
 
     @Test
     public void causalReadsOn() throws Exception {
@@ -69,9 +69,7 @@ public class CausalReadsTest {
                 System.out.println("result " + result + " uuid " + uuid);
                 if (result.equals(uuid)) { endLoop = true; } else { retries += 1; }
 
-                if (resultSet != null) {
                     resultSet.close();
-                }
 
             }
 

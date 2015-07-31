@@ -6,6 +6,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -46,6 +47,7 @@ public class GaleraNode {
         config.setMaximumPoolSize(poolSettings.maxConnectionsPerHost);
         config.setMinimumIdle(poolSettings.minConnectionsIdlePerHost);
         config.setIdleTimeout(poolSettings.idleTimeout);
+        config.setAutoCommit(poolSettings.autocommit);
         config.setInitializationFailFast(false);
         config.addDataSourceProperty("cachePrepStmts", "true");
         config.addDataSourceProperty("prepStmtCacheSize", "250");
@@ -113,7 +115,7 @@ public class GaleraNode {
         return dataSource.getConnection();
     }
 
-    public Connection getConnection(ConsistencyLevel consistencyLevel) throws Exception {
+    public Connection getConnection(ConsistencyLevel consistencyLevel) throws SQLException {
         return GaleraProxyConnection.create(dataSource.getConnection(), consistencyLevel, status);
     }
 
@@ -121,6 +123,13 @@ public class GaleraNode {
         dataSource = new HikariDataSource(newHikariConfig("hikari-pool-" + node, node, galeraDB, poolSettings));
     }
 
+    public PrintWriter getLogWriter() throws SQLException {
+        return dataSource.getLogWriter();
+    }
+
+    public void setLogWriter(PrintWriter out) throws SQLException {
+        dataSource.setLogWriter(out);
+    }
     public void onDown() {
         if (dataSource != null) {
             LOG.info("Closing all connections on node " + node);

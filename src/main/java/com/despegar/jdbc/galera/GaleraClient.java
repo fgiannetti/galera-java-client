@@ -3,7 +3,6 @@ package com.despegar.jdbc.galera;
 import com.despegar.jdbc.galera.listener.GaleraClientListener;
 import com.despegar.jdbc.galera.listener.GaleraClientLoggingListener;
 import com.despegar.jdbc.galera.policies.ElectionNodePolicy;
-import com.despegar.jdbc.galera.policies.MasterSortingNodesPolicy;
 import com.despegar.jdbc.galera.policies.RoundRobinPolicy;
 import com.despegar.jdbc.galera.settings.ClientSettings;
 import com.despegar.jdbc.galera.settings.DiscoverSettings;
@@ -211,38 +210,40 @@ public class GaleraClient extends AbstractGaleraDataSource {
 
     @Override
     public Connection getConnection() throws SQLException {
-        return selectNode(false).getConnection();
+        return selectNode(null).getConnection();
     }
 
     /**
      * @param consistencyLevel Set the consistencyLevel needed.
-     * @param holdsMaster if True use the {@link ElectionNodePolicy} set in
-     * {@link ClientSettings#masterPolicy}, otherwise use {@link ClientSettings#nodeSelectionPolicy}
+     * @param electionNodePolicy Policy to choose the node that will get a connection. If it is null, we will use the default policy configured on client.
      * @return a {@link Connection}
      * @throws SQLException
      */
-    public Connection getConnection(ConsistencyLevel consistencyLevel, boolean holdsMaster) throws SQLException {
-        GaleraNode galeraNode = selectNode(holdsMaster);
+    public Connection getConnection(ConsistencyLevel consistencyLevel, ElectionNodePolicy electionNodePolicy) throws SQLException {
+        GaleraNode galeraNode = selectNode(electionNodePolicy);
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Getting connection from node " + (holdsMaster ? "[master] " : "") + galeraNode.node);
+            LOG.debug("Getting connection [{}] from node {}", (electionNodePolicy != null) ?
+                    electionNodePolicy.getName() : clientSettings.defaultNodeSelectionPolicy.getName(), galeraNode.node);
         }
         return galeraNode.getConnection(consistencyLevel);
     }
 
-    protected GaleraNode selectNode(boolean holdsMaster) {
-        return getActiveGaleraNode(1, holdsMaster);
+    protected GaleraNode selectNode(ElectionNodePolicy electionNodePolicy) {
+        return getActiveGaleraNode(1, electionNodePolicy);
     }
 
-    private GaleraNode getActiveGaleraNode(int retry, boolean holdsMaster) {
+    private GaleraNode getActiveGaleraNode(int retry, ElectionNodePolicy electionNodePolicy) {
         if (retry <= clientSettings.retriesToGetConnection) {
             try {
-                ElectionNodePolicy policy = (holdsMaster)? clientSettings.masterPolicy : clientSettings.nodeSelectionPolicy;
+                ElectionNodePolicy policy = (electionNodePolicy != null) ?
+                        electionNodePolicy :
+                        clientSettings.defaultNodeSelectionPolicy;
                 GaleraNode galeraNode = nodes.get(policy.chooseNode(activeNodes));
 
-                return galeraNode != null ? galeraNode : getActiveGaleraNode(++retry, holdsMaster);
+                return galeraNode != null ? galeraNode : getActiveGaleraNode(++retry, electionNodePolicy);
             } catch (Exception exception) {
                 LOG.warn("Error getting active galera node. Retry {}/{}. Reason {}", retry, clientSettings.retriesToGetConnection, exception);
-                return getActiveGaleraNode(++retry, holdsMaster);
+                return getActiveGaleraNode(++retry, electionNodePolicy);
             }
         } else {
             LOG.error("NoHostAvailableException selecting an active galera node. Max attempts reached");
@@ -292,10 +293,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
         private boolean readOnly = false;
         private String isolationLevel = "TRANSACTION_READ_COMMITTED";
         private GaleraClientListener listener;
-        private ElectionNodePolicy masterPolicy;
-        private ElectionNodePolicy defaultMasterPolicy = new MasterSortingNodesPolicy();
-        private ElectionNodePolicy nodeSelectionPolicy;
-        private ElectionNodePolicy defaultNodeSelectionPolicy = new RoundRobinPolicy();
+        private ElectionNodePolicy nodeSelectionPolicy = new RoundRobinPolicy();
 
         public Builder seeds(String seeds) {
             this.seeds = seeds;
@@ -350,13 +348,8 @@ public class GaleraClient extends AbstractGaleraDataSource {
             return this;
         }
 
-        public Builder masterPolicy(ElectionNodePolicy masterPolicy) {
-            this.masterPolicy = masterPolicy;
-            return this;
-        }
-
-        public Builder nodeSelectionPolicy(ElectionNodePolicy nodePolicy) {
-            this.nodeSelectionPolicy = nodePolicy;
+        public Builder nodeSelectionPolicy(ElectionNodePolicy defaultPolicy) {
+            this.nodeSelectionPolicy = defaultPolicy;
             return this;
         }
 
@@ -377,7 +370,9 @@ public class GaleraClient extends AbstractGaleraDataSource {
 
 
         public GaleraClient build() {
-            ClientSettings clientSettings = new ClientSettings(seeds(), retriesToGetConnection, (listener != null) ? listener : new GaleraClientLoggingListener(), (masterPolicy != null) ? masterPolicy : defaultMasterPolicy, (nodeSelectionPolicy != null) ? nodeSelectionPolicy : defaultNodeSelectionPolicy);
+            ClientSettings clientSettings = new ClientSettings(seeds(), retriesToGetConnection,
+                                                               (listener != null) ? listener : new GaleraClientLoggingListener(),
+                                                               (nodeSelectionPolicy != null) ? nodeSelectionPolicy : new RoundRobinPolicy());
             DiscoverSettings discoverSettings = new DiscoverSettings(discoverPeriod, ignoreDonor);
             GaleraDB galeraDB = new GaleraDB(database, user, password);
             PoolSettings poolSettings = new PoolSettings(maxConnectionsPerHost, minConnectionsIdlePerHost, connectTimeout, connectionTimeout, readTimeout,

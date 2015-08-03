@@ -6,4 +6,6 @@ public interface ElectionNodePolicy {
 
     String chooseNode(List<String> activeNodes);
 
+    String getName();
+
 }

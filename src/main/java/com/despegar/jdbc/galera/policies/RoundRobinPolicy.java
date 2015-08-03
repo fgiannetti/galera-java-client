@@ -25,6 +25,11 @@ public class RoundRobinPolicy implements ElectionNodePolicy {
         return selectedNode;
     }
 
+    @Override
+    public String getName() {
+        return "RoundRobin";
+    }
+
     private int nextNodeIndex(List<String> activeNodes) {
         int activeNodesCount = activeNodes.size();
         if (activeNodesCount == 0) {

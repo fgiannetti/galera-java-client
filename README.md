@@ -35,7 +35,7 @@ But you can also use something like `client.getConnection(ConsistencyLevel.SYNC_
 
 * **GaleraClientListener:** You can extend functionality, for example to report some metrics, setting on the client builder an implementation of GaleraClientListener, which has callbacks for the following events: activating/removing node, marking node as down and selecting a new master node. The default implementation just logs this events.       
 
-* **ElectionNodePolicy:** You can provide a custom election node policy only with supplying a fully qualified name of the implementation of `com.despegar.jdbc.galera.policies.ElectionNodePolicy` that will be used to select the node and get the connection. When you ask for a connection with *holdsMaster in true* the client uses the `com.despegar.jdbc.galera.policies.MasterSortingNodesPolicy` otherwise `com.despegar.jdbc.galera.policies.RoundRobinPolicy`.
+* **ElectionNodePolicy:** You can configure `com.despegar.jdbc.galera.policies.RoundRobinPolicy` (which is the default) or `com.despegar.jdbc.galera.policies.MasterSortingNodesPolicy`. You can also provide a custom election node policy only with supplying a fully qualified name of the implementation of `com.despegar.jdbc.galera.policies.ElectionNodePolicy`. This policy will be used each time you invoke getConnection() in order to select a node and get a connection from it. There is another method, getConnection(..., ElectionNodePolicy) that let you to specify a different election node policy than the default one. 
 
 ## Maven
 

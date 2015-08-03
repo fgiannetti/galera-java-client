@@ -1,5 +1,7 @@
 package com.despegar.jdbc.galera;
 
+import com.despegar.jdbc.galera.policies.MasterSortingNodesPolicy;
+
 import java.sql.Connection;
 
 public class GaleraClientTest {
@@ -20,7 +22,7 @@ public class GaleraClientTest {
         try {
             connection = client.getConnection();
             //connection = Client.getConnection(ConsistencyLevel.CAUSAL_READS_ON);
-            connection = client.getConnection(ConsistencyLevel.SYNC_READ_UPDATE_DELETE, true);
+            connection = client.getConnection(ConsistencyLevel.SYNC_READ_UPDATE_DELETE, new MasterSortingNodesPolicy());
         } finally {
             if (connection != null) {
                 connection.close();
@@ -28,6 +30,7 @@ public class GaleraClientTest {
 
             client.shutdown();
         }
+
     }
 
 }

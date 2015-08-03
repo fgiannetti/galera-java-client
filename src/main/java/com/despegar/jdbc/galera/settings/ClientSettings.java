@@ -9,15 +9,13 @@ public class ClientSettings {
     public final ArrayList<String> seeds;
     public final int retriesToGetConnection;
     public final GaleraClientListener galeraClientListener;
-    public final ElectionNodePolicy masterPolicy;
-    public final ElectionNodePolicy nodeSelectionPolicy;
+    public final ElectionNodePolicy defaultNodeSelectionPolicy;
 
-
-    public ClientSettings(ArrayList<String> seeds, int retriesToGetConnection, GaleraClientListener galeraClientListener, ElectionNodePolicy masterPolicy, ElectionNodePolicy nodePolicy) {
+    public ClientSettings(ArrayList<String> seeds, int retriesToGetConnection, GaleraClientListener galeraClientListener,
+                          ElectionNodePolicy defaultNodeSelectionPolicy) {
         this.seeds = seeds;
         this.retriesToGetConnection = retriesToGetConnection;
         this.galeraClientListener = galeraClientListener;
-        this.masterPolicy = masterPolicy;
-        this.nodeSelectionPolicy = nodePolicy;
+        this.defaultNodeSelectionPolicy = defaultNodeSelectionPolicy;
     }
 }

@@ -22,4 +22,9 @@ public class MasterSortingNodesPolicy implements ElectionNodePolicy {
 
         return master;
     }
+
+    @Override
+    public String getName() {
+        return "MasterSortingNodes";
+    }
 }

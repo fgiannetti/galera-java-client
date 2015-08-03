@@ -1,6 +1,7 @@
 package com.despegar.jdbc.galera;
 
 import com.despegar.jdbc.galera.listener.GaleraClientLoggingListener;
+import com.despegar.jdbc.galera.policies.ElectionNodePolicy;
 import com.despegar.jdbc.galera.settings.ClientSettings;
 import com.despegar.jdbc.galera.settings.DiscoverSettings;
 import com.despegar.jdbc.galera.settings.PoolSettings;
@@ -18,7 +19,7 @@ import java.util.UUID;
 @Ignore(value = "Ignoring because of bad configuration: host, database, user, ..")
 public class CausalReadsTest {
     private ArrayList<String> seeds = new ArrayList<String>(Arrays.asList("<host:port>"));
-    private ClientSettings clientSettings = new ClientSettings(seeds, 5, new GaleraClientLoggingListener(), null, null);
+    private ClientSettings clientSettings = new ClientSettings(seeds, 5, new GaleraClientLoggingListener(), null);
     private DiscoverSettings discoverSettings = new DiscoverSettings(2000, false);
     private GaleraDB galeraDB = new GaleraDB("<database>", "<user>", "<pwd>");
     private PoolSettings poolSettings = new PoolSettings(2, 1, 5000, 5000, 10000, 30000, true, false, "TRANSACTION_READ_COMMITTED");
@@ -43,8 +44,8 @@ public class CausalReadsTest {
 
         int rounds = 1000;
 
-        Connection writerConnection = writerClient.getConnection(causalReads ? ConsistencyLevel.CAUSAL_READS_ON : ConsistencyLevel.CAUSAL_READS_OFF, false);
-        Connection readerConnection = readerClient.getConnection(causalReads ? ConsistencyLevel.CAUSAL_READS_ON : ConsistencyLevel.CAUSAL_READS_OFF, false);
+        Connection writerConnection = writerClient.getConnection(causalReads ? ConsistencyLevel.CAUSAL_READS_ON : ConsistencyLevel.CAUSAL_READS_OFF, null);
+        Connection readerConnection = readerClient.getConnection(causalReads ? ConsistencyLevel.CAUSAL_READS_ON : ConsistencyLevel.CAUSAL_READS_OFF, null);
 
         int totalRetries = 0;
 
@@ -95,7 +96,7 @@ public class CausalReadsTest {
         private String node;
 
         @Override
-        protected GaleraNode selectNode(boolean holdsMaster) {
+        protected GaleraNode selectNode(ElectionNodePolicy electionNodePolicy) {
             return nodes.get(node);
         }
 

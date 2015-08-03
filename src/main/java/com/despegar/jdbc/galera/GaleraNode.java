@@ -48,6 +48,7 @@ public class GaleraNode {
         config.setMinimumIdle(poolSettings.minConnectionsIdlePerHost);
         config.setIdleTimeout(poolSettings.idleTimeout);
         config.setAutoCommit(poolSettings.autocommit);
+        config.setTransactionIsolation(poolSettings.isolationLevel);
         config.setInitializationFailFast(false);
         config.addDataSourceProperty("cachePrepStmts", "true");
         config.addDataSourceProperty("prepStmtCacheSize", "250");
@@ -108,7 +109,7 @@ public class GaleraNode {
 
     public void shutdown() {
         onDown();
-        if (statusDataSource != null) statusDataSource.shutdown();
+        if (statusDataSource != null) { statusDataSource.shutdown(); }
     }
 
     public Connection getConnection() throws SQLException {
@@ -130,6 +131,7 @@ public class GaleraNode {
     public void setLogWriter(PrintWriter out) throws SQLException {
         dataSource.setLogWriter(out);
     }
+
     public void onDown() {
         if (dataSource != null) {
             LOG.info("Closing all connections on node " + node);

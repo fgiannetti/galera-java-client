@@ -218,7 +218,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
      * @return a {@link Connection}
      * @throws SQLException
      */
-public Connection getConnection(ConsistencyLevel consistencyLevel, boolean holdsMaster) throws SQLException {
+    public Connection getConnection(ConsistencyLevel consistencyLevel, boolean holdsMaster) throws SQLException {
         GaleraNode galeraNode = selectNode(holdsMaster);
         if (LOG.isDebugEnabled()) {
             LOG.debug("Getting connection from node " + (holdsMaster ? "[master] " : "") + galeraNode.node);
@@ -286,12 +286,12 @@ public Connection getConnection(ConsistencyLevel consistencyLevel, boolean holds
         private boolean ignoreDonor = true;
         private int retriesToGetConnection = 3;
         private boolean autocommit = true; //JDBC default.
+        private String isolationLevel = "TRANSACTION_READ_COMMITTED";
         private GaleraClientListener listener;
         private ElectionNodePolicy masterPolicy;
         private ElectionNodePolicy defaultMasterPolicy = new MasterSortingNodesPolicy();
         private ElectionNodePolicy nodeSelectionPolicy;
         private ElectionNodePolicy defaultNodeSelectionPolicy = new RoundRobinPolicy();
-
 
         public Builder seeds(String seeds) {
             this.seeds = seeds;
@@ -361,12 +361,18 @@ public Connection getConnection(ConsistencyLevel consistencyLevel, boolean holds
             return this;
         }
 
+        public Builder isolationLevel(String isolationLevel) {
+            this.isolationLevel = isolationLevel;
+            return this;
+        }
+
+
         public GaleraClient build() {
             ClientSettings clientSettings = new ClientSettings(seeds(), retriesToGetConnection, (listener != null) ? listener : new GaleraClientLoggingListener(), (masterPolicy != null) ? masterPolicy : defaultMasterPolicy, (nodeSelectionPolicy != null) ? nodeSelectionPolicy : defaultNodeSelectionPolicy);
             DiscoverSettings discoverSettings = new DiscoverSettings(discoverPeriod, ignoreDonor);
             GaleraDB galeraDB = new GaleraDB(database, user, password);
             PoolSettings poolSettings = new PoolSettings(maxConnectionsPerHost, minConnectionsIdlePerHost, connectTimeout, connectionTimeout, readTimeout,
-                                                         idleTimeout, autocommit);
+                                                         idleTimeout, autocommit, isolationLevel);
 
             return new GaleraClient(clientSettings, discoverSettings, galeraDB, poolSettings);
         }

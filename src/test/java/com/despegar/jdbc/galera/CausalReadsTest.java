@@ -21,7 +21,7 @@ public class CausalReadsTest {
     private ClientSettings clientSettings = new ClientSettings(seeds, 5, new GaleraClientLoggingListener(), null, null);
     private DiscoverSettings discoverSettings = new DiscoverSettings(2000, false);
     private GaleraDB galeraDB = new GaleraDB("<database>", "<user>", "<pwd>");
-    private PoolSettings poolSettings = new PoolSettings(2, 1, 5000, 5000, 10000, 30000, true);
+    private PoolSettings poolSettings = new PoolSettings(2, 1, 5000, 5000, 10000, 30000, true, false, "TRANSACTION_READ_COMMITTED");
 
     @Test
     public void causalReadsOn() throws Exception {
@@ -100,13 +100,13 @@ public class CausalReadsTest {
         }
 
         protected GaleraClientTest(ClientSettings clientSettings, DiscoverSettings discoverSettings, GaleraDB galeraDB, PoolSettings poolSettings) {
-            super(clientSettings, discoverSettings, galeraDB, poolSettings);
+            super(clientSettings, discoverSettings, galeraDB, poolSettings, poolSettings);
             throw new RuntimeException("Don't use this constructor");
         }
 
         public GaleraClientTest(String nodeName, ClientSettings clientSettings, DiscoverSettings discoverSettings, GaleraDB galeraDB,
                                 PoolSettings poolSettings) {
-            super(clientSettings, discoverSettings, galeraDB, poolSettings);
+            super(clientSettings, discoverSettings, galeraDB, poolSettings, poolSettings);
             this.node = nodeName;
         }
     }

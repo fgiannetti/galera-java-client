@@ -1,4 +1,4 @@
-package com.despegar.jdbc.galera;
+package com.despegar.jdbc.galera.consistency;
 
 public enum ConsistencyLevel {
 
@@ -13,7 +13,7 @@ public enum ConsistencyLevel {
     CAUSAL_READS_OFF("0"),
     CAUSAL_READS_ON("1");
 
-    final String value;
+    public final String value;
 
     private ConsistencyLevel(String value) {
         this.value = value;

@@ -1,11 +1,11 @@
 package com.despegar.jdbc.galera;
 
+import com.despegar.jdbc.galera.consistency.ConsistencyLevel;
 import com.despegar.jdbc.galera.policies.MasterSortingNodesPolicy;
 
 import java.sql.Connection;
 
 public class GaleraClientTest {
-
 
     public static void main(String[] args) throws Exception {
         new GaleraClientTest().testGaleraClient();

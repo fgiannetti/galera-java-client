@@ -1,5 +1,6 @@
 package com.despegar.jdbc.galera;
 
+import com.despegar.jdbc.galera.consistency.ConsistencyLevel;
 import com.despegar.jdbc.galera.listener.GaleraClientListener;
 import com.despegar.jdbc.galera.listener.GaleraClientLoggingListener;
 import com.despegar.jdbc.galera.policies.ElectionNodePolicy;
@@ -67,7 +68,8 @@ public class GaleraClient extends AbstractGaleraDataSource {
         for (String downedNode : downedNodes) {
             try {
                 discover(downedNode);
-                if (nodes.containsKey(downedNode) && !(nodes.get(downedNode).status().isDonor() && discoverSettings.ignoreDonor) && nodes.get(downedNode).status().isPrimary()) {
+                if (nodes.containsKey(downedNode) && !(nodes.get(downedNode).status().isDonor() && discoverSettings.ignoreDonor) && nodes.get(downedNode)
+                        .status().isPrimary()) {
                     if (LOG.isDebugEnabled()) {
                         LOG.debug("Will activate a previous downed node: {}", downedNode);
                     }
@@ -214,7 +216,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
     }
 
     /**
-     * @param consistencyLevel Set the consistencyLevel needed.
+     * @param consistencyLevel   Set the consistencyLevel needed.
      * @param electionNodePolicy Policy to choose the node that will get a connection. If it is null, we will use the default policy configured on client.
      * @return a {@link Connection}
      * @throws SQLException
@@ -259,8 +261,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
     @Override
     public PrintWriter getLogWriter() throws SQLException {
         for (GaleraNode galeraNode : nodes.values()) {
-            if(galeraNode.getLogWriter() != null)
-                return galeraNode.getLogWriter();
+            if (galeraNode.getLogWriter() != null) { return galeraNode.getLogWriter(); }
         }
 
         return null;
@@ -292,6 +293,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
         private boolean autocommit = true; //JDBC default.
         private boolean readOnly = false;
         private String isolationLevel = "TRANSACTION_READ_COMMITTED";
+        private ConsistencyLevel consistencyLevel;
         private GaleraClientListener listener;
         private ElectionNodePolicy nodeSelectionPolicy = new RoundRobinPolicy();
 
@@ -368,6 +370,10 @@ public class GaleraClient extends AbstractGaleraDataSource {
             return this;
         }
 
+        public Builder consistencyLevel(ConsistencyLevel consistencyLevel) {
+            this.consistencyLevel = consistencyLevel;
+            return this;
+        }
 
         public GaleraClient build() {
             ClientSettings clientSettings = new ClientSettings(seeds(), retriesToGetConnection,
@@ -376,9 +382,9 @@ public class GaleraClient extends AbstractGaleraDataSource {
             DiscoverSettings discoverSettings = new DiscoverSettings(discoverPeriod, ignoreDonor);
             GaleraDB galeraDB = new GaleraDB(database, user, password);
             PoolSettings poolSettings = new PoolSettings(maxConnectionsPerHost, minConnectionsIdlePerHost, connectTimeout, connectionTimeout, readTimeout,
-                                                         idleTimeout, autocommit, readOnly, isolationLevel);
+                                                         idleTimeout, autocommit, readOnly, isolationLevel, consistencyLevel);
             PoolSettings internalPoolSettings = new PoolSettings(8, 4, connectTimeout, connectionTimeout, readTimeout,
-                                                                 idleTimeout, false, true, isolationLevel);
+                                                                 idleTimeout, false, true, isolationLevel, null);
 
             return new GaleraClient(clientSettings, discoverSettings, galeraDB, poolSettings, internalPoolSettings);
         }

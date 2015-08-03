@@ -1,5 +1,8 @@
 package com.despegar.jdbc.galera;
 
+import com.despegar.jdbc.galera.consistency.ConsistencyLevel;
+import com.despegar.jdbc.galera.consistency.ConsistencyLevelSupport;
+import com.despegar.jdbc.galera.consistency.GaleraProxyConnection;
 import com.despegar.jdbc.galera.settings.PoolSettings;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
@@ -114,7 +117,14 @@ public class GaleraNode {
     }
 
     public Connection getConnection() throws SQLException {
-        return dataSource.getConnection();
+        Connection conn = dataSource.getConnection();
+
+        if (poolSettings.consistencyLevel != null) {
+            LOG.debug("Setting connection level to default configured on client: {} ", poolSettings.consistencyLevel.toString());
+            ConsistencyLevelSupport.set(conn, poolSettings.consistencyLevel.value, status.supportsSyncWait());
+        }
+
+        return conn;
     }
 
     public Connection getConnection(ConsistencyLevel consistencyLevel) throws SQLException {

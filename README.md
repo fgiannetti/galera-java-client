@@ -20,9 +20,9 @@ It doesn't implement the mysql protocol or manage jdbc connections by itself. It
 
 * **Ignoring donor nodes:** Configure this flag with `new GaleraClient.Builder().ignoreDonor(true)`. When this flag is enabled, donor nodes are marked as down, so you will not get connections from donor nodes. Default value: true
 
-* **Supporting custom connections:**  You can get a connection with a simple `client.getConnection()`. In this case, you'll get a connection from any node and the consistency level will be the global value configured in your mariaDB wsrep_sync_wait (or wsrep_causal_reads for earlier versions).
-But you can also use something like `client.getConnection(ConsistencyLevel.SYNC_READ_UPDATE_DELETE, true)`. The
-`ConsistencyLevel` values can change depending of the Galera versions as follows: 
+* **Supporting custom connections:**  You can get a connection with a simple `client.getConnection()`. But you can also use something like `client.getConnection(ConsistencyLevel.SYNC_READ_UPDATE_DELETE, SomeElectionNodePolicy)`.
+ If you invoke the method without arguments the consistency level will be the value set on `consistencyLevel` property of the galera-java-client. And if this value is null, the global value configured in your mariaDB wsrep_sync_wait (or wsrep_causal_reads for earlier versions) will be used. Regarding the node election policy we will use the one that was configured on `nodeSelectionPolicy` property of the client. 
+ The `ConsistencyLevel` values can change depending of the Galera versions as follows: 
   * **Galera 5.5.39 - MariaDB Galera 10.0.x**
     * SYNC_OFF
     * SYNC_READS

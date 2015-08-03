@@ -1,5 +1,6 @@
-package com.despegar.jdbc.galera;
+package com.despegar.jdbc.galera.consistency;
 
+import com.despegar.jdbc.galera.GaleraStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -7,7 +8,6 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
 /**
@@ -19,8 +19,6 @@ public class GaleraProxyConnection implements InvocationHandler {
     private static final Logger LOG = LoggerFactory.getLogger(GaleraProxyConnection.class);
 
     private static final String CLOSE_METHOD = "close";
-    private static final String SET_SESSION_SYNC_WAIT = "SET SESSION wsrep_sync_wait = ?";
-    private static final String SET_SESSION_CAUSAL_READS = "SET SESSION wsrep_causal_reads = ?";
 
     private Connection underlyingConnection;
     private String globalConsistencyLevel;
@@ -33,14 +31,14 @@ public class GaleraProxyConnection implements InvocationHandler {
 
         validate(connectionConsistencyLevel);
 
-        setConnectionConsistencyLevel(connectionConsistencyLevel.value);
+        ConsistencyLevelSupport.set(underlyingConnection, connectionConsistencyLevel.value, this.supportsSyncWait);
     }
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         if (CLOSE_METHOD.equals(method.getName())) {
             LOG.info("Setting wsrep_sync_wait to global default before closing connection {}", globalConsistencyLevel);
-            setConnectionConsistencyLevel(globalConsistencyLevel);
+            ConsistencyLevelSupport.set(underlyingConnection, globalConsistencyLevel, this.supportsSyncWait);
         }
         return method.invoke(underlyingConnection, args);
     }
@@ -59,27 +57,6 @@ public class GaleraProxyConnection implements InvocationHandler {
         }
     }
 
-    private void setConnectionConsistencyLevel(String consistencyLevel) throws SQLException {
-        PreparedStatement preparedStatement = null;
 
-        try {
-            if (this.supportsSyncWait) {
-                LOG.info("Setting wsrep_sync_wait to {}", consistencyLevel);
-                preparedStatement = underlyingConnection.prepareStatement(SET_SESSION_SYNC_WAIT);
-                preparedStatement.setInt(1, Integer.valueOf(consistencyLevel));
-            } else {
-                LOG.info("Setting wsrep_causal_reads to {}", consistencyLevel);
-                preparedStatement = underlyingConnection.prepareStatement(SET_SESSION_CAUSAL_READS);
-                preparedStatement.setString(1, consistencyLevel);
-            }
-
-            preparedStatement.execute();
-
-        } finally {
-            if (preparedStatement != null) {
-                preparedStatement.close();
-            }
-        }
-    }
 
 }

@@ -27,13 +27,13 @@ public class GaleraNode {
     private volatile HikariDataSource dataSource;
     private volatile GaleraStatus status;
 
-    public GaleraNode(String node, GaleraDB galeraDB, PoolSettings poolSettings) {
+    public GaleraNode(String node, GaleraDB galeraDB, PoolSettings poolSettings, PoolSettings internalPoolSettings) {
         LOG.info("Creating galera node {}", node);
         this.node = node;
         this.galeraDB = galeraDB;
         this.poolSettings = poolSettings;
 
-        HikariConfig hikariConfig = newHikariConfig("hikari-pool-status-" + node, node, galeraDB, poolSettings);
+        HikariConfig hikariConfig = newHikariConfig("hikari-pool-status-" + node, node, galeraDB, internalPoolSettings);
         statusDataSource = new HikariDataSource(hikariConfig);
     }
 
@@ -48,6 +48,7 @@ public class GaleraNode {
         config.setMinimumIdle(poolSettings.minConnectionsIdlePerHost);
         config.setIdleTimeout(poolSettings.idleTimeout);
         config.setAutoCommit(poolSettings.autocommit);
+        config.setReadOnly(poolSettings.readOnly);
         config.setTransactionIsolation(poolSettings.isolationLevel);
         config.setInitializationFailFast(false);
         config.addDataSourceProperty("cachePrepStmts", "true");

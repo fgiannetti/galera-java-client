@@ -27,6 +27,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
     private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private GaleraDB galeraDB;
     private PoolSettings poolSettings;
+    private PoolSettings internalPoolSettings;
     private DiscoverSettings discoverSettings;
     private ClientSettings clientSettings;
     private Runnable discoverRunnable = new Runnable() {
@@ -36,9 +37,11 @@ public class GaleraClient extends AbstractGaleraDataSource {
         }
     };
 
-    protected GaleraClient(ClientSettings clientSettings, DiscoverSettings discoverSettings, GaleraDB galeraDB, PoolSettings poolSettings) {
+    protected GaleraClient(ClientSettings clientSettings, DiscoverSettings discoverSettings, GaleraDB galeraDB, PoolSettings poolSettings,
+                           PoolSettings internalPoolSettings) {
         this.galeraDB = galeraDB;
         this.poolSettings = poolSettings;
+        this.internalPoolSettings = internalPoolSettings;
         this.discoverSettings = discoverSettings;
         this.clientSettings = clientSettings;
         registerNodes(clientSettings.seeds);
@@ -199,7 +202,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
     private void registerNode(String node) {
         LOG.info("Registering Galera node: {}", node);
         try {
-            nodes.put(node, new GaleraNode(node, galeraDB, poolSettings));
+            nodes.put(node, new GaleraNode(node, galeraDB, poolSettings, internalPoolSettings));
             discover(node);
         } catch (Exception e) {
             down(node, "failure in connection. " + e.getMessage());
@@ -286,6 +289,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
         private boolean ignoreDonor = true;
         private int retriesToGetConnection = 3;
         private boolean autocommit = true; //JDBC default.
+        private boolean readOnly = false;
         private String isolationLevel = "TRANSACTION_READ_COMMITTED";
         private GaleraClientListener listener;
         private ElectionNodePolicy masterPolicy;
@@ -361,6 +365,11 @@ public class GaleraClient extends AbstractGaleraDataSource {
             return this;
         }
 
+        public Builder readOnly(boolean readOnly) {
+            this.readOnly = readOnly;
+            return this;
+        }
+
         public Builder isolationLevel(String isolationLevel) {
             this.isolationLevel = isolationLevel;
             return this;
@@ -372,9 +381,11 @@ public class GaleraClient extends AbstractGaleraDataSource {
             DiscoverSettings discoverSettings = new DiscoverSettings(discoverPeriod, ignoreDonor);
             GaleraDB galeraDB = new GaleraDB(database, user, password);
             PoolSettings poolSettings = new PoolSettings(maxConnectionsPerHost, minConnectionsIdlePerHost, connectTimeout, connectionTimeout, readTimeout,
-                                                         idleTimeout, autocommit, isolationLevel);
+                                                         idleTimeout, autocommit, readOnly, isolationLevel);
+            PoolSettings internalPoolSettings = new PoolSettings(8, 4, connectTimeout, connectionTimeout, readTimeout,
+                                                                 idleTimeout, false, true, isolationLevel);
 
-            return new GaleraClient(clientSettings, discoverSettings, galeraDB, poolSettings);
+            return new GaleraClient(clientSettings, discoverSettings, galeraDB, poolSettings, internalPoolSettings);
         }
 
         private ArrayList<String> seeds() {

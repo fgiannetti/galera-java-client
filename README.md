@@ -7,7 +7,7 @@ galera-java-client
 
 It is designed to be use as an alternative option to connect JVM applications to MariaDB/Percona galera nodes without HAProxy. 
 
-The client has a load balance policy to distribute connection requests, it discovers new joined nodes automatically and activates/deactivates nodes based on Galera specific states, the primary component membership and network errors.
+The client has a load balance policy to distribute connection requests, it discovers new joined nodes automatically and activates/deactivates nodes based on Galera specific states, the primary component membership and network errors. In order to achieve this, galera-java-client opens a little connection pool that queries the cluster status periodically. This pool is separated from the pool that serves the requests.
 
 It doesn't implement the mysql protocol or manage jdbc connections by itself. It relies on mariadb-java-client to open connections and HikariCP to manage the connection pools against the MariaDB/Percona nodes.
 

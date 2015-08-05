@@ -10,8 +10,8 @@ public enum ConsistencyLevel {
     SYNC_INSERT_REPLACE("4"),
 
     // Earlier versions
-    CAUSAL_READS_OFF("0"),
-    CAUSAL_READS_ON("1");
+    CAUSAL_READS_OFF("OFF"),
+    CAUSAL_READS_ON("ON");
 
     public final String value;
 

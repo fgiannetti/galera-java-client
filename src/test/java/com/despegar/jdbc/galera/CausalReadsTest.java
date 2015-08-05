@@ -3,11 +3,11 @@ package com.despegar.jdbc.galera;
 import com.despegar.jdbc.galera.consistency.ConsistencyLevel;
 import com.despegar.jdbc.galera.listener.GaleraClientLoggingListener;
 import com.despegar.jdbc.galera.policies.ElectionNodePolicy;
+import com.despegar.jdbc.galera.policies.RoundRobinPolicy;
 import com.despegar.jdbc.galera.settings.ClientSettings;
 import com.despegar.jdbc.galera.settings.DiscoverSettings;
 import com.despegar.jdbc.galera.settings.PoolSettings;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.sql.Connection;
@@ -17,42 +17,79 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.UUID;
 
-@Ignore(value = "Ignoring because of bad configuration: host, database, user, ..")
+//@Ignore(value = "Ignoring because of bad configuration: host, database, user, ..")
 public class CausalReadsTest {
-    private ArrayList<String> seeds = new ArrayList<String>(Arrays.asList("<host:port>"));
-    private ClientSettings clientSettings = new ClientSettings(seeds, 5, new GaleraClientLoggingListener(), null);
-    private DiscoverSettings discoverSettings = new DiscoverSettings(2000, false);
-    private GaleraDB galeraDB = new GaleraDB("<database>", "<user>", "<pwd>");
-    private PoolSettings poolSettings = new PoolSettings(2, 1, 5000, 5000, 10000, 30000, true, false, "TRANSACTION_READ_COMMITTED", null);
+    private static final String HOST_WRITER = "<hostA:port>";
+    private static final String HOST_READER = "<hostB:port>";
+    private static final Integer MAX_CONN_PER_HOST = 3;
+    private static final Integer MIN_CONN = 1;
+    private static final Integer TIMEOUT = 30000;
+    private static final boolean AUTOCOMMIT = true;
+    private static final boolean READ_ONLY = false;
+    private static final String ISOLATION_LEVEL = "TRANSACTION_READ_COMMITTED";
+
+    private ArrayList<String> seeds = new ArrayList<String>(Arrays.asList(HOST_READER));
+    private ClientSettings clientSettings = new ClientSettings(seeds, 5, new GaleraClientLoggingListener(), new RoundRobinPolicy());
+    private DiscoverSettings discoverSettings = new DiscoverSettings(8000, false);
+    private GaleraDB galeraDB = new GaleraDB("<dbName>", "<usr>", "<pwd>");
+    private PoolSettings poolSettings = new PoolSettings(MAX_CONN_PER_HOST, MIN_CONN, TIMEOUT, TIMEOUT, TIMEOUT, TIMEOUT, AUTOCOMMIT, READ_ONLY,
+                                                         ISOLATION_LEVEL, null);
 
     @Test
-    public void causalReadsOn() throws Exception {
-        int totalRetries = test(true);
+    public void causalReadsOnPerClient() throws Exception {
+        PoolSettings poolSettingsWithConsistencyLevel = new PoolSettings(MAX_CONN_PER_HOST, MIN_CONN, TIMEOUT, TIMEOUT, TIMEOUT, TIMEOUT, AUTOCOMMIT, READ_ONLY,
+                                                                         ISOLATION_LEVEL, ConsistencyLevel.CAUSAL_READS_ON);
+
+        int totalRetries = test(null, poolSettingsWithConsistencyLevel);
         Assert.assertEquals(0, totalRetries);
     }
 
     @Test
-    public void causalReadsOff() throws Exception {
-        int totalRetries = test(false);
+    public void causalReadsOffPerClient() throws Exception {
+        PoolSettings poolSettingsWithConsistencyLevel = new PoolSettings(MAX_CONN_PER_HOST, MIN_CONN, TIMEOUT, TIMEOUT, TIMEOUT, TIMEOUT, AUTOCOMMIT, READ_ONLY,
+                                                                         ISOLATION_LEVEL, ConsistencyLevel.CAUSAL_READS_OFF);
+
+        int totalRetries = test(null, poolSettingsWithConsistencyLevel);
         Assert.assertTrue(totalRetries > 0);
     }
 
-    private int test(Boolean causalReads) throws Exception {
-        System.out.println("Starting test");
+    @Test
+    public void causalReadsOnPerConnection() throws Exception {
+        ConsistencyLevel consistencyLevelPerConnection = ConsistencyLevel.CAUSAL_READS_ON;
 
-        GaleraClient writerClient = new GaleraClientTest("<hostA:port>", clientSettings, discoverSettings, galeraDB, poolSettings);
-        GaleraClient readerClient = new GaleraClientTest("<hostB:port>", clientSettings, discoverSettings, galeraDB, poolSettings);
+        int totalRetries = test(consistencyLevelPerConnection, poolSettings);
+        Assert.assertEquals(0, totalRetries);
+    }
 
-        int rounds = 1000;
+    @Test
+    public void causalReadsOffPerConnection() throws Exception {
+        ConsistencyLevel consistencyLevelPerConnection = ConsistencyLevel.CAUSAL_READS_OFF;
 
-        Connection writerConnection = writerClient.getConnection(causalReads ? ConsistencyLevel.CAUSAL_READS_ON : ConsistencyLevel.CAUSAL_READS_OFF, null);
-        Connection readerConnection = readerClient.getConnection(causalReads ? ConsistencyLevel.CAUSAL_READS_ON : ConsistencyLevel.CAUSAL_READS_OFF, null);
+        int totalRetries = test(consistencyLevelPerConnection, poolSettings);
+        Assert.assertTrue(totalRetries > 0);
+    }
 
+    private int test(ConsistencyLevel consistencyLevelPerConnection, PoolSettings poolSettings) throws Exception {
+        GaleraClient writerClient = new GaleraClientTest(HOST_WRITER, clientSettings, discoverSettings, galeraDB, poolSettings);
+        GaleraClient readerClient = new GaleraClientTest(HOST_READER, clientSettings, discoverSettings, galeraDB, poolSettings);
+
+        int rounds = 300;
         int totalRetries = 0;
 
+        Connection writerConnection = null;
+        Connection readerConnection = null;
         PreparedStatement writeStatement = null;
         PreparedStatement readStatement = null;
         for (int i = 0; i < rounds; i++) {
+
+            if (consistencyLevelPerConnection != null) {
+                writerConnection = writerClient.getConnection(consistencyLevelPerConnection, null);
+                readerConnection = readerClient.getConnection(consistencyLevelPerConnection, null);
+            } else {
+                writerConnection = writerClient.getConnection();
+                readerConnection = readerClient.getConnection();
+            }
+
 
             writeStatement = writerConnection.prepareStatement("UPDATE Test set k=? where id=1");
             readStatement = readerConnection.prepareStatement("SELECT k from Test where id=1");
@@ -75,17 +112,17 @@ public class CausalReadsTest {
 
             }
 
+            if (writeStatement != null) { writeStatement.close(); }
+            if (readStatement != null) { readStatement.close(); }
+            writerConnection.close();
+            readerConnection.close();
+
             totalRetries += retries;
             System.out.println(
                     "--------------------------------------------------round " + i + " number of retries: " + retries + "--------------------------------");
         }
 
         System.out.println("-------------------------------------------------- Total Retries: " + totalRetries + "--------------------------------");
-
-        if (writeStatement != null) { writeStatement.close(); }
-        if (readStatement != null) { readStatement.close(); }
-        writerConnection.close();
-        readerConnection.close();
 
         writerClient.shutdown();
         readerClient.shutdown();
@@ -114,3 +151,4 @@ public class CausalReadsTest {
     }
 
 }
+

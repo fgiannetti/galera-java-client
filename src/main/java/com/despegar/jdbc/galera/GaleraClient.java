@@ -222,10 +222,10 @@ public class GaleraClient extends AbstractGaleraDataSource {
      * @throws SQLException
      */
     public Connection getConnection(ConsistencyLevel consistencyLevel, ElectionNodePolicy electionNodePolicy) throws SQLException {
-        GaleraNode galeraNode = selectNode(electionNodePolicy);
+        ElectionNodePolicy policy = (electionNodePolicy != null) ? electionNodePolicy : clientSettings.defaultNodeSelectionPolicy;
+        GaleraNode galeraNode = selectNode(policy);
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Getting connection [{}] from node {}", (electionNodePolicy != null) ?
-                    electionNodePolicy.getName() : clientSettings.defaultNodeSelectionPolicy.getName(), galeraNode.node);
+            LOG.debug("Getting connection [{}] from node {}", policy.getName(), galeraNode.node);
         }
         return galeraNode.getConnection(consistencyLevel);
     }

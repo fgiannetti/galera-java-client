@@ -5,6 +5,7 @@ import com.despegar.jdbc.galera.listener.GaleraClientListener;
 import com.despegar.jdbc.galera.policies.ElectionNodePolicy;
 
 public class GaleraClientFactory {
+    private boolean testMode;
     private String database;
     private String user;
     private String password;
@@ -30,7 +31,7 @@ public class GaleraClientFactory {
                 maxConnectionsPerHost).minConnectionsIdlePerHost(minConnectionsIdlePerHost).discoverPeriod(discoverPeriod).connectionTimeout(
                 connectionTimeout).connectTimeout(connectTimeout).readTimeout(readTimeout).idleTimeout(idleTimeout).ignoreDonor(
                 ignoreDonor).retriesToGetConnection(retriesToGetConnection).autocommit(autocommit).readOnly(readOnly).isolationLevel(
-                isolationLevel).consistencyLevel(consistencyLevel).listener(listener).nodeSelectionPolicy(nodeSelectionPolicy).build();
+                isolationLevel).consistencyLevel(consistencyLevel).listener(listener).nodeSelectionPolicy(nodeSelectionPolicy).testMode(testMode).build();
     }
 
     public void setDatabase(String database) {
@@ -107,6 +108,10 @@ public class GaleraClientFactory {
 
     public void setNodeSelectionPolicy(ElectionNodePolicy nodeSelectionPolicy) {
         this.nodeSelectionPolicy = nodeSelectionPolicy;
+    }
+
+    public void setTestMode(boolean testMode) {
+        this.testMode = testMode;
     }
 }
 

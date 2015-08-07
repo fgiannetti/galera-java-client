@@ -37,6 +37,8 @@ It doesn't implement the mysql protocol or manage jdbc connections by itself. It
 
 * **ElectionNodePolicy:** You can configure `com.despegar.jdbc.galera.policies.RoundRobinPolicy` (which is the default) or `com.despegar.jdbc.galera.policies.MasterSortingNodesPolicy`. You can also provide a custom election node policy only with supplying a fully qualified name of the implementation of `com.despegar.jdbc.galera.policies.ElectionNodePolicy`. This policy will be used each time you invoke getConnection() in order to select a node and get a connection from it. There is another method, getConnection(..., ElectionNodePolicy) that let you to specify a different election node policy than the default one. 
 
+* **TestMode:** You can use testMode flag in order to disable discovery node capability. This will disable checks for node statuses too. This mode must be used for test purposes only.
+ 
 ## Maven
 
 ```xml

@@ -30,7 +30,7 @@ public class CausalReadsTest {
     private static final String ISOLATION_LEVEL = "TRANSACTION_READ_COMMITTED";
 
     private ArrayList<String> seeds = new ArrayList<String>(Arrays.asList(HOST_READER));
-    private ClientSettings clientSettings = new ClientSettings(seeds, 5, new GaleraClientLoggingListener(), new RoundRobinPolicy());
+    private ClientSettings clientSettings = new ClientSettings(seeds, 5, new GaleraClientLoggingListener(), new RoundRobinPolicy(), false);
     private DiscoverSettings discoverSettings = new DiscoverSettings(8000, false);
     private GaleraDB galeraDB = new GaleraDB("<dbName>", "<usr>", "<pwd>");
     private PoolSettings poolSettings = new PoolSettings(MAX_CONN_PER_HOST, MIN_CONN, TIMEOUT, TIMEOUT, TIMEOUT, TIMEOUT, AUTOCOMMIT, READ_ONLY,
@@ -90,7 +90,6 @@ public class CausalReadsTest {
                 writerConnection = writerClient.getConnection();
                 readerConnection = readerClient.getConnection();
             }
-
 
             writeStatement = writerConnection.prepareStatement("UPDATE Test set k=? where id=1");
             readStatement = readerConnection.prepareStatement("SELECT k from Test where id=1");

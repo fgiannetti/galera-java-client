@@ -26,24 +26,26 @@ public class GaleraNode {
     public final String node;
     private final GaleraDB galeraDB;
     private final PoolSettings poolSettings;
-    private final HikariDataSource statusDataSource;
+    private HikariDataSource statusDataSource;
     private volatile HikariDataSource dataSource;
     private volatile GaleraStatus status;
 
-    public GaleraNode(String node, GaleraDB galeraDB, PoolSettings poolSettings, PoolSettings internalPoolSettings) {
+    public GaleraNode(String node, GaleraDB galeraDB, PoolSettings poolSettings, PoolSettings internalPoolSettings, boolean testMode) {
         LOG.info("Creating galera node {}", node);
         this.node = node;
         this.galeraDB = galeraDB;
         this.poolSettings = poolSettings;
 
-        HikariConfig hikariConfig = newHikariConfig("hikari-pool-status-" + node, node, galeraDB, internalPoolSettings);
-        statusDataSource = new HikariDataSource(hikariConfig);
+        if (!testMode) {
+            HikariConfig hikariConfig = newHikariConfig("hikari-pool-status-" + node, node, galeraDB, internalPoolSettings);
+            statusDataSource = new HikariDataSource(hikariConfig);
+        }
     }
 
     private HikariConfig newHikariConfig(String poolName, String node, GaleraDB galeraDB, PoolSettings poolSettings) {
         HikariConfig config = new HikariConfig();
         config.setPoolName(poolName);
-        config.setJdbcUrl("jdbc:mysql://" + node + "/" + galeraDB.database);
+        config.setJdbcUrl(galeraDB.jdbcUrlPrefix + node + galeraDB.jdbcUrlSeparator + galeraDB.database);
         config.setUsername(galeraDB.user);
         config.setPassword(galeraDB.password);
         config.setConnectionTimeout(poolSettings.connectionTimeout);

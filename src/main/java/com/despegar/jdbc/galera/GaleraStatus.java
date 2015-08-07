@@ -2,6 +2,7 @@ package com.despegar.jdbc.galera;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 
 public class GaleraStatus {
@@ -53,6 +54,14 @@ public class GaleraStatus {
 
         // Earlier mariadb versions
         return statusMap.get(CAUSAL_READS_VARIABLE);
+    }
+
+    public static GaleraStatus buildTestStatusOk(String node) {
+        Map<String, String> statusMap = new HashMap<String, String>();
+        statusMap.put(CLUSTER_STATUS, PRIMARY);
+        statusMap.put(STATE_VARIABLE, STATUS_SYNCED);
+        statusMap.put(INCOMING_ADDRESSES, node);
+        return new GaleraStatus(statusMap);
     }
 
 }

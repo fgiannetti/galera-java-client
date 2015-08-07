@@ -145,8 +145,15 @@ public class GaleraClient extends AbstractGaleraDataSource {
     private void discover(String node) throws Exception {
         LOG.trace("Discovering {}...", node);
         GaleraNode galeraNode = nodes.get(node);
-        galeraNode.refreshStatus();
-        GaleraStatus status = galeraNode.status();
+
+        GaleraStatus status = null;
+        if (clientSettings.testMode) {
+            status = GaleraStatus.buildTestStatusOk(node);
+        } else {
+            galeraNode.refreshStatus();
+            status = galeraNode.status();
+        }
+
         if (!status.isPrimary()) {
             if (LOG.isDebugEnabled()) {
                 LOG.debug("On discover - Non primary node {}", node);
@@ -173,7 +180,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
         if (!discoveredNodes.contains(node)) {
             removeNode(node);
         } else {
-            if (!isActive(node) && !(nodes.get(node).status().isDonor() && discoverSettings.ignoreDonor)) {
+            if (!isActive(node) && !(status.isDonor() && discoverSettings.ignoreDonor)) {
                 LOG.info("Will activate a discovered node: {}", node);
                 activate(node);
             }
@@ -189,7 +196,9 @@ public class GaleraClient extends AbstractGaleraDataSource {
     }
 
     private void startDiscovery(long discoverPeriod) {
-        scheduler.scheduleAtFixedRate(discoverRunnable, 0, discoverPeriod, TimeUnit.MILLISECONDS);
+        if (!clientSettings.testMode) {
+            scheduler.scheduleAtFixedRate(discoverRunnable, 0, discoverPeriod, TimeUnit.MILLISECONDS);
+        }
     }
 
     private void registerNodes(Collection<String> seeds) {
@@ -203,7 +212,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
     private void registerNode(String node) {
         LOG.info("Registering Galera node: {}", node);
         try {
-            nodes.put(node, new GaleraNode(node, galeraDB, poolSettings, internalPoolSettings));
+            nodes.put(node, new GaleraNode(node, galeraDB, poolSettings, internalPoolSettings, clientSettings.testMode));
             discover(node);
         } catch (Exception e) {
             down(node, "failure in connection. " + e.getMessage());
@@ -277,9 +286,12 @@ public class GaleraClient extends AbstractGaleraDataSource {
 
     public static class Builder {
 
+        private boolean testMode = false;
         private String database;
         private String user;
         private String password;
+        private String jdbcUrlPrefix = GaleraDB.MYSQL_URL_PREFIX;
+        private String jdbcUrlSeparator = GaleraDB.MYSQL_URL_SEPARATOR;
         private String seeds;
         private int maxConnectionsPerHost;
         private int minConnectionsIdlePerHost;
@@ -297,8 +309,33 @@ public class GaleraClient extends AbstractGaleraDataSource {
         private GaleraClientListener listener;
         private ElectionNodePolicy nodeSelectionPolicy = new RoundRobinPolicy();
 
+        public GaleraClient build() {
+            ClientSettings clientSettings = new ClientSettings(seeds(), retriesToGetConnection,
+                                                               (listener != null) ? listener : new GaleraClientLoggingListener(),
+                                                               (nodeSelectionPolicy != null) ? nodeSelectionPolicy : new RoundRobinPolicy(), testMode);
+            DiscoverSettings discoverSettings = new DiscoverSettings(discoverPeriod, ignoreDonor);
+            GaleraDB galeraDB = new GaleraDB(database, user, password, jdbcUrlPrefix, jdbcUrlSeparator);
+            PoolSettings poolSettings = new PoolSettings(maxConnectionsPerHost, minConnectionsIdlePerHost, connectTimeout, connectionTimeout, readTimeout,
+                                                         idleTimeout, autocommit, readOnly, isolationLevel, consistencyLevel);
+            PoolSettings internalPoolSettings = new PoolSettings(8, 4, connectTimeout, connectionTimeout, readTimeout,
+                                                                 idleTimeout, false, true, isolationLevel, null);
+
+            return new GaleraClient(clientSettings, discoverSettings, galeraDB, poolSettings, internalPoolSettings);
+        }
+
+
         public Builder seeds(String seeds) {
             this.seeds = seeds;
+            return this;
+        }
+
+        public Builder jdbcUrlPrefix(String jdbcUrlPrefix) {
+            this.jdbcUrlPrefix = jdbcUrlPrefix;
+            return this;
+        }
+
+        public Builder jdbcUrlSeparator(String jdbcUrlSeparator) {
+            this.jdbcUrlSeparator = jdbcUrlSeparator;
             return this;
         }
 
@@ -375,22 +412,13 @@ public class GaleraClient extends AbstractGaleraDataSource {
             return this;
         }
 
-        public GaleraClient build() {
-            ClientSettings clientSettings = new ClientSettings(seeds(), retriesToGetConnection,
-                                                               (listener != null) ? listener : new GaleraClientLoggingListener(),
-                                                               (nodeSelectionPolicy != null) ? nodeSelectionPolicy : new RoundRobinPolicy());
-            DiscoverSettings discoverSettings = new DiscoverSettings(discoverPeriod, ignoreDonor);
-            GaleraDB galeraDB = new GaleraDB(database, user, password);
-            PoolSettings poolSettings = new PoolSettings(maxConnectionsPerHost, minConnectionsIdlePerHost, connectTimeout, connectionTimeout, readTimeout,
-                                                         idleTimeout, autocommit, readOnly, isolationLevel, consistencyLevel);
-            PoolSettings internalPoolSettings = new PoolSettings(8, 4, connectTimeout, connectionTimeout, readTimeout,
-                                                                 idleTimeout, false, true, isolationLevel, null);
-
-            return new GaleraClient(clientSettings, discoverSettings, galeraDB, poolSettings, internalPoolSettings);
-        }
-
         private ArrayList<String> seeds() {
             return new ArrayList<String>(Arrays.asList(seeds.split(",")));
+        }
+
+        public Builder testMode(boolean testMode) {
+            this.testMode = testMode;
+            return this;
         }
 
         public Builder discoverPeriod(long discoverPeriod) {

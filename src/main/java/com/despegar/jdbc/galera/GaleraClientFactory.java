@@ -9,6 +9,8 @@ public class GaleraClientFactory {
     private String database;
     private String user;
     private String password;
+    private String jdbcUrlPrefix;
+    private String jdbcUrlSeparator;
     private String seeds;
     private int maxConnectionsPerHost;
     private int minConnectionsIdlePerHost;
@@ -27,11 +29,11 @@ public class GaleraClientFactory {
     private ElectionNodePolicy nodeSelectionPolicy;
 
     public GaleraClient getInstance() {
-        return new GaleraClient.Builder().database(database).user(user).password(password).seeds(seeds).maxConnectionsPerHost(
-                maxConnectionsPerHost).minConnectionsIdlePerHost(minConnectionsIdlePerHost).discoverPeriod(discoverPeriod).connectionTimeout(
-                connectionTimeout).connectTimeout(connectTimeout).readTimeout(readTimeout).idleTimeout(idleTimeout).ignoreDonor(
-                ignoreDonor).retriesToGetConnection(retriesToGetConnection).autocommit(autocommit).readOnly(readOnly).isolationLevel(
-                isolationLevel).consistencyLevel(consistencyLevel).listener(listener).nodeSelectionPolicy(nodeSelectionPolicy).testMode(testMode).build();
+        return new GaleraClient.Builder().jdbcUrlPrefix(jdbcUrlPrefix).jdbcUrlSeparator(jdbcUrlSeparator).database(database).user(user).password(password)
+                .seeds(seeds).maxConnectionsPerHost(maxConnectionsPerHost).minConnectionsIdlePerHost(minConnectionsIdlePerHost).discoverPeriod(discoverPeriod)
+                .connectionTimeout(connectionTimeout).connectTimeout(connectTimeout).readTimeout(readTimeout).idleTimeout(idleTimeout).ignoreDonor(ignoreDonor)
+                .retriesToGetConnection(retriesToGetConnection).autocommit(autocommit).readOnly(readOnly).isolationLevel(isolationLevel)
+                .consistencyLevel(consistencyLevel).listener(listener).nodeSelectionPolicy(nodeSelectionPolicy).testMode(testMode).build();
     }
 
     public void setDatabase(String database) {
@@ -112,6 +114,14 @@ public class GaleraClientFactory {
 
     public void setTestMode(boolean testMode) {
         this.testMode = testMode;
+    }
+
+    public void setJdbcUrlPrefix(String jdbcUrlPrefix) {
+        this.jdbcUrlPrefix = jdbcUrlPrefix;
+    }
+
+    public void setJdbcUrlSeparator(String jdbcUrlSeparator) {
+        this.jdbcUrlSeparator = jdbcUrlSeparator;
     }
 }
 

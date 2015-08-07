@@ -290,8 +290,8 @@ public class GaleraClient extends AbstractGaleraDataSource {
         private String database;
         private String user;
         private String password;
-        private String jdbcUrlPrefix = GaleraDB.MYSQL_URL_PREFIX;
-        private String jdbcUrlSeparator = GaleraDB.MYSQL_URL_SEPARATOR;
+        private String jdbcUrlPrefix;
+        private String jdbcUrlSeparator;
         private String seeds;
         private int maxConnectionsPerHost;
         private int minConnectionsIdlePerHost;
@@ -310,11 +310,18 @@ public class GaleraClient extends AbstractGaleraDataSource {
         private ElectionNodePolicy nodeSelectionPolicy = new RoundRobinPolicy();
 
         public GaleraClient build() {
-            ClientSettings clientSettings = new ClientSettings(seeds(), retriesToGetConnection,
-                                                               (listener != null) ? listener : new GaleraClientLoggingListener(),
-                                                               (nodeSelectionPolicy != null) ? nodeSelectionPolicy : new RoundRobinPolicy(), testMode);
+            ClientSettings clientSettings =
+                    new ClientSettings(
+                            seeds(),
+                            retriesToGetConnection,
+                            (listener != null) ? listener : new GaleraClientLoggingListener(),
+                            (nodeSelectionPolicy != null) ? nodeSelectionPolicy : new RoundRobinPolicy(),
+                            testMode);
             DiscoverSettings discoverSettings = new DiscoverSettings(discoverPeriod, ignoreDonor);
-            GaleraDB galeraDB = new GaleraDB(database, user, password, jdbcUrlPrefix, jdbcUrlSeparator);
+            GaleraDB galeraDB =
+                    new GaleraDB(database, user, password,
+                                 (jdbcUrlPrefix != null) ? jdbcUrlPrefix : GaleraDB.MYSQL_URL_PREFIX,
+                                 (jdbcUrlSeparator != null) ? jdbcUrlSeparator : GaleraDB.MYSQL_URL_SEPARATOR);
             PoolSettings poolSettings = new PoolSettings(maxConnectionsPerHost, minConnectionsIdlePerHost, connectTimeout, connectionTimeout, readTimeout,
                                                          idleTimeout, autocommit, readOnly, isolationLevel, consistencyLevel);
             PoolSettings internalPoolSettings = new PoolSettings(8, 4, connectTimeout, connectionTimeout, readTimeout,

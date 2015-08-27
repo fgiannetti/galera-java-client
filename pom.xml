@@ -7,7 +7,7 @@
 	<groupId>com.despegar</groupId>
 	<artifactId>galera-java-client</artifactId>
 	<packaging>jar</packaging>
-	<version>1.0.8</version>
+	<version>1.0.9</version>
 
 	<name>galera-java-client</name>
 	<url>https://github.com/despegar/galera-java-client</url>
@@ -42,7 +42,7 @@
 		<dependency>
 			<groupId>org.mariadb.jdbc</groupId>
 			<artifactId>mariadb-java-client</artifactId>
-			<version>1.1.7</version>
+			<version>1.2</version>
 		</dependency>
 		<dependency>
 			<groupId>ch.qos.logback</groupId>

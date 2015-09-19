@@ -1,32 +1,58 @@
 package com.despegar.jdbc.galera;
 
+import org.hamcrest.MatcherAssert;
+import org.junit.Test;
+
 import java.sql.Connection;
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.notNullValue;
 
 public class GaleraClientTest {
 
-    public static void main(String[] args) throws Exception {
-        new GaleraClientTest().testGaleraClient();
-    }
+    @Test
+    public void getConnection_writable() throws Exception {
 
-    public void testGaleraClient() throws Exception {
-        GaleraClient client = new GaleraClient.Builder().seeds("maria-1.mg10.dev.docker")
-                .database("").user("despegar").password("despegar").discoverPeriod(2000)
-                .connectTimeout(500).connectionTimeout(1000).readTimeout(1000)
-                .maxConnectionsPerHost(3).minConnectionsIdlePerHost(1).idleTimeout(30000)
-                .ignoreDonor(true).retriesToGetConnection(5).build();
+        final GaleraClient instance = GaleraClient.newBuilder()
+                .testMode(true)
+                .jdbcUrlPrefix("jdbc:h2:")
+                .seeds("mem")
+                .jdbcUrlSeparator(":")
+                .database("test;MODE=MySQL;DB_CLOSE_ON_EXIT=FALSE")
+                .user("sa")
+                .readOnly(false)
+                .build();
 
-        Connection connection = null;
+        final Connection connection = instance.getConnection();
+
         try {
-            connection = client.getConnection();
-            //connection = Client.getConnection(ConsistencyLevel.CAUSAL_READS_ON, null);
-            //connection = client.getConnection(ConsistencyLevel.SYNC_READ_UPDATE_DELETE, new MasterSortingNodesPolicy());
+            MatcherAssert.assertThat("connection", connection, notNullValue());
+            MatcherAssert.assertThat(connection.isClosed(), equalTo(false));
+            MatcherAssert.assertThat(connection.isReadOnly(), equalTo(false));
         } finally {
             if (connection != null) {
                 connection.close();
             }
-
-            client.shutdown();
         }
+
+    }
+
+    @Test(expected = NoActiveNodeException.class)
+    public void getConnection_noActiveNode_throwException() throws Exception {
+
+        final GaleraClient instance = GaleraClient.newBuilder()
+                .testMode(true)
+                .jdbcUrlPrefix("jdbc:h2:tcp://")
+                .seeds("localhost:9290") // unexistent
+                .database("test;MODE=MySQL;DB_CLOSE_ON_EXIT=FALSE")
+                .user("sa")
+                .readOnly(false)
+                .retriesToGetConnection(1)
+                .connectionTimeout(1)
+                .connectTimeout(1)
+                .build();
+
+        instance.getConnection();
 
     }
 

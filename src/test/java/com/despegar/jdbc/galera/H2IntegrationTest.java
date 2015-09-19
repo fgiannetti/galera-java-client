@@ -15,11 +15,22 @@ public class H2IntegrationTest {
 
     @Before
     public void initialize() {
-        client = new GaleraClient.Builder().testMode(true).jdbcUrlPrefix("jdbc:h2:").seeds("mem").jdbcUrlSeparator(":")
-                .database("test;MODE=MySQL;DB_CLOSE_ON_EXIT=FALSE").user("sa").password("")
-                .connectTimeout(500).connectionTimeout(1000).readTimeout(1000)
-                .maxConnectionsPerHost(3).minConnectionsIdlePerHost(1).idleTimeout(30000)
-                .ignoreDonor(true).retriesToGetConnection(5).build();
+        client = new GaleraClient.Builder()
+                .testMode(true)
+                .jdbcUrlPrefix("jdbc:h2:")
+                .seeds("mem")
+                .jdbcUrlSeparator(":")
+                .database("test;MODE=MySQL;DB_CLOSE_ON_EXIT=FALSE")
+                .user("sa").password("")
+                .connectTimeout(500)
+                .connectionTimeout(1000)
+                .readTimeout(1000)
+                .maxConnectionsPerHost(3)
+                .minConnectionsIdlePerHost(1)
+                .idleTimeout(30000)
+                .ignoreDonor(true)
+                .retriesToGetConnection(5)
+                .build();
     }
 
     @After

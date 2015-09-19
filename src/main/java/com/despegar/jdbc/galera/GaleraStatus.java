@@ -43,6 +43,10 @@ public class GaleraStatus {
         return state().equals(STATUS_DONOR);
     }
 
+    public boolean isNotDonor() {
+        return !this.isDonor();
+    }
+
     public boolean supportsSyncWait() {
         return statusMap.keySet().contains(SYNC_WAIT_VARIABLE);
     }

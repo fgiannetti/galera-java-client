@@ -1,5 +1,7 @@
 package com.despegar.jdbc.galera.settings;
 
+import com.google.common.base.MoreObjects;
+
 public class DiscoverSettings {
     public final long discoverPeriod;
 
@@ -11,5 +13,13 @@ public class DiscoverSettings {
     public DiscoverSettings(long discoverPeriod, boolean ignoreDonor) {
         this.discoverPeriod = discoverPeriod;
         this.ignoreDonor = ignoreDonor;
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                .add("discoverPeriod", discoverPeriod)
+                .add("ignoreDonor", ignoreDonor)
+                .toString();
     }
 }

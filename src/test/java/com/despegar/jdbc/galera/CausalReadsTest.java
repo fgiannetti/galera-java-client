@@ -7,6 +7,7 @@ import com.despegar.jdbc.galera.policies.RoundRobinPolicy;
 import com.despegar.jdbc.galera.settings.ClientSettings;
 import com.despegar.jdbc.galera.settings.DiscoverSettings;
 import com.despegar.jdbc.galera.settings.PoolSettings;
+import com.google.common.collect.Lists;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -29,17 +30,36 @@ public class CausalReadsTest {
     private static final boolean READ_ONLY = false;
     private static final String ISOLATION_LEVEL = "TRANSACTION_READ_COMMITTED";
 
-    private ArrayList<String> seeds = new ArrayList<String>(Arrays.asList(HOST_READER));
+    private ArrayList<String> seeds = Lists.newArrayList(HOST_READER);
     private ClientSettings clientSettings = new ClientSettings(seeds, 5, new GaleraClientLoggingListener(), new RoundRobinPolicy(), false);
     private DiscoverSettings discoverSettings = new DiscoverSettings(8000, false);
     private GaleraDB galeraDB = new GaleraDB("<dbName>", "<usr>", "<pwd>");
-    private PoolSettings poolSettings = new PoolSettings(MAX_CONN_PER_HOST, MIN_CONN, TIMEOUT, TIMEOUT, TIMEOUT, TIMEOUT, AUTOCOMMIT, READ_ONLY,
-                                                         ISOLATION_LEVEL, null);
+    private PoolSettings poolSettings = PoolSettings.newBuilder()
+            .maxConnectionsPerHost(MAX_CONN_PER_HOST)
+            .minConnectionsIdlePerHost(MIN_CONN)
+            .connectTimeout(TIMEOUT)
+            .connectionTimeout(TIMEOUT)
+            .idleTimeout(TIMEOUT)
+            .readTimeout(TIMEOUT)
+            .autocommit(AUTOCOMMIT)
+            .readOnly(READ_ONLY)
+            .isolationLevel(ISOLATION_LEVEL)
+            .build();
 
     @Test
     public void causalReadsOnPerClient() throws Exception {
-        PoolSettings poolSettingsWithConsistencyLevel = new PoolSettings(MAX_CONN_PER_HOST, MIN_CONN, TIMEOUT, TIMEOUT, TIMEOUT, TIMEOUT, AUTOCOMMIT, READ_ONLY,
-                                                                         ISOLATION_LEVEL, ConsistencyLevel.CAUSAL_READS_ON);
+        PoolSettings poolSettingsWithConsistencyLevel = PoolSettings.newBuilder()
+                .maxConnectionsPerHost(MAX_CONN_PER_HOST)
+                .minConnectionsIdlePerHost(MIN_CONN)
+                .connectTimeout(TIMEOUT)
+                .connectionTimeout(TIMEOUT)
+                .idleTimeout(TIMEOUT)
+                .readTimeout(TIMEOUT)
+                .autocommit(AUTOCOMMIT)
+                .readOnly(READ_ONLY)
+                .isolationLevel(ISOLATION_LEVEL)
+                .consistencyLevel(ConsistencyLevel.CAUSAL_READS_ON)
+                .build();
 
         int totalRetries = test(null, poolSettingsWithConsistencyLevel);
         Assert.assertEquals(0, totalRetries);
@@ -47,8 +67,18 @@ public class CausalReadsTest {
 
     @Test
     public void causalReadsOffPerClient() throws Exception {
-        PoolSettings poolSettingsWithConsistencyLevel = new PoolSettings(MAX_CONN_PER_HOST, MIN_CONN, TIMEOUT, TIMEOUT, TIMEOUT, TIMEOUT, AUTOCOMMIT, READ_ONLY,
-                                                                         ISOLATION_LEVEL, ConsistencyLevel.CAUSAL_READS_OFF);
+        PoolSettings poolSettingsWithConsistencyLevel = PoolSettings.newBuilder()
+                .maxConnectionsPerHost(MAX_CONN_PER_HOST)
+                .minConnectionsIdlePerHost(MIN_CONN)
+                .connectTimeout(TIMEOUT)
+                .connectionTimeout(TIMEOUT)
+                .idleTimeout(TIMEOUT)
+                .readTimeout(TIMEOUT)
+                .autocommit(AUTOCOMMIT)
+                .readOnly(READ_ONLY)
+                .isolationLevel(ISOLATION_LEVEL)
+                .consistencyLevel(ConsistencyLevel.CAUSAL_READS_OFF)
+                .build();
 
         int totalRetries = test(null, poolSettingsWithConsistencyLevel);
         Assert.assertTrue(totalRetries > 0);
@@ -71,8 +101,8 @@ public class CausalReadsTest {
     }
 
     private int test(ConsistencyLevel consistencyLevelPerConnection, PoolSettings poolSettings) throws Exception {
-        GaleraClient writerClient = new GaleraClientTest(HOST_WRITER, clientSettings, discoverSettings, galeraDB, poolSettings);
-        GaleraClient readerClient = new GaleraClientTest(HOST_READER, clientSettings, discoverSettings, galeraDB, poolSettings);
+        GaleraClient writerClient = new CasualReadTestingGaleraClient(HOST_WRITER, clientSettings, discoverSettings, galeraDB, poolSettings);
+        GaleraClient readerClient = new CasualReadTestingGaleraClient(HOST_READER, clientSettings, discoverSettings, galeraDB, poolSettings);
 
         int rounds = 300;
         int totalRetries = 0;
@@ -106,14 +136,22 @@ public class CausalReadsTest {
                 ResultSet resultSet = readStatement.executeQuery();
                 String result = resultSet.next() ? resultSet.getString(1) : "";
                 System.out.println("result " + result + " uuid " + uuid);
-                if (result.equals(uuid)) { endLoop = true; } else { retries += 1; }
+                if (result.equals(uuid)) {
+                    endLoop = true;
+                } else {
+                    retries += 1;
+                }
 
                 resultSet.close();
 
             }
 
-            if (writeStatement != null) { writeStatement.close(); }
-            if (readStatement != null) { readStatement.close(); }
+            if (writeStatement != null) {
+                writeStatement.close();
+            }
+            if (readStatement != null) {
+                readStatement.close();
+            }
             writerConnection.close();
             readerConnection.close();
 
@@ -130,7 +168,7 @@ public class CausalReadsTest {
         return totalRetries;
     }
 
-    private class GaleraClientTest extends GaleraClient {
+    private class CasualReadTestingGaleraClient extends GaleraClient {
         private String node;
 
         @Override
@@ -138,13 +176,13 @@ public class CausalReadsTest {
             return nodes.get(node);
         }
 
-        protected GaleraClientTest(ClientSettings clientSettings, DiscoverSettings discoverSettings, GaleraDB galeraDB, PoolSettings poolSettings) {
+        protected CasualReadTestingGaleraClient(ClientSettings clientSettings, DiscoverSettings discoverSettings, GaleraDB galeraDB, PoolSettings poolSettings) {
             super(clientSettings, discoverSettings, galeraDB, poolSettings, poolSettings);
             throw new RuntimeException("Don't use this constructor");
         }
 
-        public GaleraClientTest(String nodeName, ClientSettings clientSettings, DiscoverSettings discoverSettings, GaleraDB galeraDB,
-                                PoolSettings poolSettings) {
+        public CasualReadTestingGaleraClient(String nodeName, ClientSettings clientSettings, DiscoverSettings discoverSettings, GaleraDB galeraDB,
+                                             PoolSettings poolSettings) {
             super(clientSettings, discoverSettings, galeraDB, poolSettings, poolSettings);
             this.node = nodeName;
         }

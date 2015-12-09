@@ -8,9 +8,13 @@ import com.despegar.jdbc.galera.policies.RoundRobinPolicy;
 import com.despegar.jdbc.galera.settings.ClientSettings;
 import com.despegar.jdbc.galera.settings.DiscoverSettings;
 import com.despegar.jdbc.galera.settings.PoolSettings;
+import com.google.common.base.*;
+import com.google.common.base.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -48,11 +52,16 @@ public class GaleraClient extends AbstractGaleraDataSource {
         startDiscovery(discoverSettings.discoverPeriod);
     }
 
+    public static GaleraClient.Builder newBuilder() {
+        return new GaleraClient.Builder();
+    }
+
     private void discovery() {
+
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Discovering Galera cluster...");
+        }
         try {
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Discovering Galera cluster...");
-            }
             discoverActiveNodes();
             testDownedNodes();
 
@@ -62,14 +71,15 @@ public class GaleraClient extends AbstractGaleraDataSource {
         } catch (Throwable reason) {
             LOG.error("Galera discovery failed", reason);
         }
+
     }
 
     private void testDownedNodes() {
         for (String downedNode : downedNodes) {
             try {
                 discover(downedNode);
-                if (nodes.containsKey(downedNode) && !(nodes.get(downedNode).status().isDonor() && discoverSettings.ignoreDonor) && nodes.get(downedNode)
-                        .status().isPrimary()) {
+                GaleraNode galeraNode = nodes.get(downedNode);
+                if (galeraNode != null && !(galeraNode.status().isDonor() && discoverSettings.ignoreDonor) && galeraNode.status().isPrimary()) {
                     if (LOG.isDebugEnabled()) {
                         LOG.debug("Will activate a previous downed node: {}", downedNode);
                     }
@@ -146,7 +156,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
         LOG.trace("Discovering {}...", node);
         GaleraNode galeraNode = nodes.get(node);
 
-        GaleraStatus status = null;
+        GaleraStatus status;
         if (clientSettings.testMode) {
             status = GaleraStatus.buildTestStatusOk(node);
         } else {
@@ -162,7 +172,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
             return;
         }
 
-        if (!status.isSynced() && (discoverSettings.ignoreDonor || !status.isDonor())) {
+        if (!status.isSynced() && (discoverSettings.ignoreDonor || status.isNotDonor())) {
             if (LOG.isDebugEnabled()) {
                 LOG.debug("On discover - State not ready [{}] - Ignore donor [{}] : {}", status.state(), discoverSettings.ignoreDonor, node);
             }
@@ -171,8 +181,10 @@ public class GaleraClient extends AbstractGaleraDataSource {
         }
 
         Collection<String> discoveredNodes = status.getClusterNodes();
+        LOG.trace("Cluster nodes: {}", discoveredNodes);
+
         for (String discoveredNode : discoveredNodes) {
-            if (isNew(discoveredNode)) {
+            if (isNewNodeOnCluster(discoveredNode)) {
                 LOG.info("Found new node {}. Actual nodes {}", discoveredNode, nodes.keySet());
                 registerNode(discoveredNode);
             }
@@ -191,7 +203,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
         return activeNodes.contains(node);
     }
 
-    private boolean isNew(String discoveredNode) {
+    private boolean isNewNodeOnCluster(String discoveredNode) {
         return !nodes.containsKey(discoveredNode);
     }
 
@@ -203,7 +215,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
 
     private void registerNodes(Collection<String> seeds) {
         for (String seed : seeds) {
-            if (isNew(seed)) {
+            if (isNewNodeOnCluster(seed)) {
                 registerNode(seed);
             }
         }
@@ -215,7 +227,8 @@ public class GaleraClient extends AbstractGaleraDataSource {
             nodes.put(node, new GaleraNode(node, galeraDB, poolSettings, internalPoolSettings, clientSettings.testMode));
             discover(node);
         } catch (Exception e) {
-            down(node, "failure in connection. " + e.getMessage());
+            LOG.error("Could not register node " + node, e);
+            down(node, "failure in connection. Reason: " + e.getMessage());
         }
     }
 
@@ -228,7 +241,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
      * @param consistencyLevel   Set the consistencyLevel needed.
      * @param electionNodePolicy Policy to choose the node that will get a connection. If it is null, we will use the default policy configured on client.
      * @return a {@link Connection}
-     * @throws SQLException
+     * @throws SQLException - if a database access error occurs
      */
     public Connection getConnection(ConsistencyLevel consistencyLevel, ElectionNodePolicy electionNodePolicy) throws SQLException {
         ElectionNodePolicy policy = (electionNodePolicy != null) ? electionNodePolicy : clientSettings.defaultNodeSelectionPolicy;
@@ -239,11 +252,15 @@ public class GaleraClient extends AbstractGaleraDataSource {
         return galeraNode.getConnection(consistencyLevel);
     }
 
-    protected GaleraNode selectNode(ElectionNodePolicy electionNodePolicy) {
+    protected GaleraNode selectNode(@Nullable ElectionNodePolicy electionNodePolicy) {
         return getActiveGaleraNode(1, electionNodePolicy);
     }
 
-    private GaleraNode getActiveGaleraNode(int retry, ElectionNodePolicy electionNodePolicy) {
+    private GaleraNode getActiveGaleraNode(int retry, @Nullable ElectionNodePolicy electionNodePolicy) {
+        if (activeNodes.isEmpty()) {
+            LOG.error("Could not get galera node cause there is no active node");
+            throw new NoActiveNodeException();
+        }
         if (retry <= clientSettings.retriesToGetConnection) {
             try {
                 ElectionNodePolicy policy = (electionNodePolicy != null) ?
@@ -252,13 +269,14 @@ public class GaleraClient extends AbstractGaleraDataSource {
                 GaleraNode galeraNode = nodes.get(policy.chooseNode(activeNodes));
 
                 return galeraNode != null ? galeraNode : getActiveGaleraNode(++retry, electionNodePolicy);
+
             } catch (Exception exception) {
                 LOG.warn("Error getting active galera node. Retry {}/{}. Reason {}", retry, clientSettings.retriesToGetConnection, exception);
                 return getActiveGaleraNode(++retry, electionNodePolicy);
             }
         } else {
             LOG.error("NoHostAvailableException selecting an active galera node. Max attempts reached");
-            throw new NoHostAvailableException();
+            throw new NoHostAvailableException(activeNodes);
         }
     }
 
@@ -270,7 +288,9 @@ public class GaleraClient extends AbstractGaleraDataSource {
     @Override
     public PrintWriter getLogWriter() throws SQLException {
         for (GaleraNode galeraNode : nodes.values()) {
-            if (galeraNode.getLogWriter() != null) { return galeraNode.getLogWriter(); }
+            if (galeraNode.getLogWriter() != null) {
+                return galeraNode.getLogWriter();
+            }
         }
 
         return null;
@@ -279,7 +299,6 @@ public class GaleraClient extends AbstractGaleraDataSource {
     @Override
     public void setLogWriter(PrintWriter out) throws SQLException {
         for (GaleraNode galeraNode : nodes.values()) {
-
             galeraNode.setLogWriter(out);
         }
     }
@@ -289,11 +308,11 @@ public class GaleraClient extends AbstractGaleraDataSource {
         private boolean testMode = false;
         private String database;
         private String user;
-        private String password;
-        private String jdbcUrlPrefix;
-        private String jdbcUrlSeparator;
+        private String password = "";
+        private Optional<String> jdbcUrlPrefix = Optional.absent();
+        private Optional<String> jdbcUrlSeparator = Optional.absent();
         private String seeds;
-        private int maxConnectionsPerHost;
+        private int maxConnectionsPerHost = 1;
         private int minConnectionsIdlePerHost;
         private long discoverPeriod;
         private long connectTimeout;
@@ -306,43 +325,90 @@ public class GaleraClient extends AbstractGaleraDataSource {
         private boolean readOnly = false;
         private String isolationLevel = "TRANSACTION_READ_COMMITTED";
         private ConsistencyLevel consistencyLevel;
-        private GaleraClientListener listener;
-        private ElectionNodePolicy nodeSelectionPolicy = new RoundRobinPolicy();
+        private Optional<GaleraClientListener> listener = Optional.absent();
+        private Optional<ElectionNodePolicy> nodeSelectionPolicy = Optional.absent();
 
         public GaleraClient build() {
+            Preconditions.checkState(seeds != null, "Seeds are required");
+            Preconditions.checkState(database != null, "Database name is required");
+
+            LOG.info("Creating galera client...");
+
             ClientSettings clientSettings =
                     new ClientSettings(
-                            seeds(),
+                            Splitter.on(",").omitEmptyStrings().trimResults().splitToList(seeds),
                             retriesToGetConnection,
-                            (listener != null) ? listener : new GaleraClientLoggingListener(),
-                            (nodeSelectionPolicy != null) ? nodeSelectionPolicy : new RoundRobinPolicy(),
+                            listener.or(new GaleraClientLoggingListener()),
+                            nodeSelectionPolicy.or(new RoundRobinPolicy()),
                             testMode);
+
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Creating galera client with settings: {}", clientSettings);
+            }
+
             DiscoverSettings discoverSettings = new DiscoverSettings(discoverPeriod, ignoreDonor);
-            GaleraDB galeraDB =
-                    new GaleraDB(database, user, password,
-                                 (jdbcUrlPrefix != null) ? jdbcUrlPrefix : GaleraDB.MYSQL_URL_PREFIX,
-                                 (jdbcUrlSeparator != null) ? jdbcUrlSeparator : GaleraDB.MYSQL_URL_SEPARATOR);
-            PoolSettings poolSettings = new PoolSettings(maxConnectionsPerHost, minConnectionsIdlePerHost, connectTimeout, connectionTimeout, readTimeout,
-                                                         idleTimeout, autocommit, readOnly, isolationLevel, consistencyLevel);
-            PoolSettings internalPoolSettings = new PoolSettings(8, 4, connectTimeout, connectionTimeout, readTimeout,
-                                                                 idleTimeout, false, true, isolationLevel, null);
+
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Creating galera client with discovery settings: {}", discoverSettings);
+            }
+
+            GaleraDB galeraDB = new GaleraDB(database, user, password,
+                    jdbcUrlPrefix.or(GaleraDB.MYSQL_URL_PREFIX),
+                    jdbcUrlSeparator.or(GaleraDB.MYSQL_URL_SEPARATOR));
+
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Creating galera client with connection settings: {}", galeraDB);
+            }
+
+            PoolSettings poolSettings = PoolSettings.newBuilder()
+                    .maxConnectionsPerHost(maxConnectionsPerHost)
+                    .minConnectionsIdlePerHost(minConnectionsIdlePerHost)
+                    .connectTimeout(connectTimeout)
+                    .connectionTimeout(connectionTimeout)
+                    .readTimeout(readTimeout)
+                    .idleTimeout(idleTimeout)
+                    .autocommit(autocommit)
+                    .readOnly(readOnly)
+                    .isolationLevel(isolationLevel)
+                    .consistencyLevel(consistencyLevel)
+                    .build();
+
+            PoolSettings internalPoolSettings = PoolSettings.newBuilder()
+                    .maxConnectionsPerHost(8)
+                    .minConnectionsIdlePerHost(4)
+                    .connectTimeout(connectTimeout)
+                    .connectionTimeout(connectionTimeout)
+                    .readTimeout(readTimeout)
+                    .idleTimeout(idleTimeout)
+                    .autocommit(false)
+                    .readOnly()
+                    .isolationLevel(isolationLevel)
+                    .build();
+
 
             return new GaleraClient(clientSettings, discoverSettings, galeraDB, poolSettings, internalPoolSettings);
         }
 
-
+        /**
+         * @param seeds Comma separated list of seeds with format {hostname}:{port},...
+         * @return Builder instance
+         */
         public Builder seeds(String seeds) {
             this.seeds = seeds;
             return this;
         }
 
-        public Builder jdbcUrlPrefix(String jdbcUrlPrefix) {
-            this.jdbcUrlPrefix = jdbcUrlPrefix;
+        /**
+         * @param jdbcUrlPrefix should be something like 'jdbc:mysql://'
+         * @return Builder instance
+         */
+        public Builder jdbcUrlPrefix(@Nullable String jdbcUrlPrefix) {
+            this.jdbcUrlPrefix = Optional.fromNullable(jdbcUrlPrefix);
             return this;
         }
 
-        public Builder jdbcUrlSeparator(String jdbcUrlSeparator) {
-            this.jdbcUrlSeparator = jdbcUrlSeparator;
+        public Builder jdbcUrlSeparator(@Nullable String jdbcUrlSeparator) {
+            this.jdbcUrlSeparator = Optional.fromNullable(jdbcUrlSeparator);
             return this;
         }
 
@@ -376,7 +442,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
             return this;
         }
 
-        public Builder connectTimeout(long connectTimeout, TimeUnit timeUnit) {
+        public Builder connectTimeout(long connectTimeout, @Nonnull TimeUnit timeUnit) {
             return connectTimeout(timeUnit.toMillis(connectTimeout));
         }
 
@@ -385,17 +451,17 @@ public class GaleraClient extends AbstractGaleraDataSource {
             return this;
         }
 
-        public Builder connectionTimeout(long connectionTimeout, TimeUnit timeUnit) {
+        public Builder connectionTimeout(long connectionTimeout, @Nonnull TimeUnit timeUnit) {
             return connectionTimeout(timeUnit.toMillis(connectionTimeout));
         }
 
-        public Builder listener(GaleraClientListener galeraClientListener) {
-            this.listener = galeraClientListener;
+        public Builder listener(@Nullable GaleraClientListener galeraClientListener) {
+            this.listener = Optional.fromNullable(galeraClientListener);
             return this;
         }
 
-        public Builder nodeSelectionPolicy(ElectionNodePolicy defaultPolicy) {
-            this.nodeSelectionPolicy = defaultPolicy;
+        public Builder nodeSelectionPolicy(@Nullable ElectionNodePolicy defaultPolicy) {
+            this.nodeSelectionPolicy = Optional.fromNullable(defaultPolicy);
             return this;
         }
 
@@ -419,9 +485,6 @@ public class GaleraClient extends AbstractGaleraDataSource {
             return this;
         }
 
-        private ArrayList<String> seeds() {
-            return new ArrayList<String>(Arrays.asList(seeds.split(",")));
-        }
 
         public Builder testMode(boolean testMode) {
             this.testMode = testMode;
@@ -433,7 +496,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
             return this;
         }
 
-        public Builder discoverPeriod(long discoverPeriod, TimeUnit timeUnit) {
+        public Builder discoverPeriod(long discoverPeriod, @Nonnull TimeUnit timeUnit) {
             return discoverPeriod(timeUnit.toMillis(discoverPeriod));
         }
 
@@ -447,7 +510,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
             return this;
         }
 
-        public Builder idleTimeout(long idleTimeout, TimeUnit timeUnit) {
+        public Builder idleTimeout(long idleTimeout, @Nonnull TimeUnit timeUnit) {
             return idleTimeout(timeUnit.toMillis(idleTimeout));
         }
 
@@ -461,7 +524,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
             return this;
         }
 
-        public Builder readTimeout(long timeout, TimeUnit timeUnit) {
+        public Builder readTimeout(long timeout, @Nonnull TimeUnit timeUnit) {
             return readTimeout(timeUnit.toMillis(timeout));
         }
     }

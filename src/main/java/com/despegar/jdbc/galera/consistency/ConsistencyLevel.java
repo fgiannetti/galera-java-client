@@ -15,7 +15,7 @@ public enum ConsistencyLevel {
 
     public final String value;
 
-    private ConsistencyLevel(String value) {
+    ConsistencyLevel(String value) {
         this.value = value;
     }
 

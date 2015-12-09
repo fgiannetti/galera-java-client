@@ -1,5 +1,6 @@
 package com.despegar.jdbc.galera.listener;
 
+import com.google.common.base.MoreObjects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,4 +22,8 @@ public class GaleraClientLoggingListener implements GaleraClientListener {
         LOG.info("Removing galera node: {}", node);
     }
 
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this).toString();
+    }
 }

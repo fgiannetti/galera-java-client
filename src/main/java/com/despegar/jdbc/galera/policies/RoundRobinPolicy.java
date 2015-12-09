@@ -1,6 +1,7 @@
 package com.despegar.jdbc.galera.policies;
 
 import com.despegar.jdbc.galera.NoHostAvailableException;
+import com.google.common.base.MoreObjects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +35,7 @@ public class RoundRobinPolicy implements ElectionNodePolicy {
         int activeNodesCount = activeNodes.size();
         if (activeNodesCount == 0) {
             LOG.error("NoHostAvailableException - Active node count is zero");
-            throw new NoHostAvailableException();
+            throw new NoHostAvailableException(activeNodes);
         }
 
         return getNextIndex() % activeNodesCount;
@@ -50,4 +51,8 @@ public class RoundRobinPolicy implements ElectionNodePolicy {
         return nextIndex;
     }
 
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this).toString();
+    }
 }

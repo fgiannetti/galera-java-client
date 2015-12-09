@@ -22,7 +22,7 @@ public class GaleraStatus {
     public GaleraStatus(Map<String, String> statusMap) {
         this.statusMap = statusMap;
     }
-    
+
     public Collection<String> getClusterNodes() {
         return Arrays.asList(statusMap.get(INCOMING_ADDRESSES).split(","));
     }
@@ -41,10 +41,6 @@ public class GaleraStatus {
 
     public boolean isDonor() {
         return state().equals(STATUS_DONOR);
-    }
-
-    public boolean isNotDonor() {
-        return !this.isDonor();
     }
 
     public boolean supportsSyncWait() {

@@ -8,8 +8,9 @@ import com.despegar.jdbc.galera.policies.RoundRobinPolicy;
 import com.despegar.jdbc.galera.settings.ClientSettings;
 import com.despegar.jdbc.galera.settings.DiscoverSettings;
 import com.despegar.jdbc.galera.settings.PoolSettings;
-import com.google.common.base.*;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,7 +19,9 @@ import javax.annotation.Nullable;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.*;
 
 public class GaleraClient extends AbstractGaleraDataSource {
@@ -172,7 +175,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
             return;
         }
 
-        if (!status.isSynced() && (discoverSettings.ignoreDonor || status.isNotDonor())) {
+        if (!status.isSynced() && (discoverSettings.ignoreDonor || !status.isDonor())) {
             if (LOG.isDebugEnabled()) {
                 LOG.debug("On discover - State not ready [{}] - Ignore donor [{}] : {}", status.state(), discoverSettings.ignoreDonor, node);
             }
@@ -312,8 +315,8 @@ public class GaleraClient extends AbstractGaleraDataSource {
         private Optional<String> jdbcUrlPrefix = Optional.absent();
         private Optional<String> jdbcUrlSeparator = Optional.absent();
         private String seeds;
-        private int maxConnectionsPerHost = 1;
-        private int minConnectionsIdlePerHost;
+        private int maxConnectionsPerHost;
+        private int minConnectionsIdlePerHost = 1;
         private long discoverPeriod;
         private long connectTimeout;
         private long connectionTimeout;
@@ -336,7 +339,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
 
             ClientSettings clientSettings =
                     new ClientSettings(
-                            Splitter.on(",").omitEmptyStrings().trimResults().splitToList(seeds),
+                            seeds(),
                             retriesToGetConnection,
                             listener.or(new GaleraClientLoggingListener()),
                             nodeSelectionPolicy.or(new RoundRobinPolicy()),
@@ -389,6 +392,10 @@ public class GaleraClient extends AbstractGaleraDataSource {
             return new GaleraClient(clientSettings, discoverSettings, galeraDB, poolSettings, internalPoolSettings);
         }
 
+        private List<String> seeds() {
+            return Splitter.on(",").omitEmptyStrings().trimResults().splitToList(seeds);
+        }
+
         /**
          * @param seeds Comma separated list of seeds with format {hostname}:{port},...
          * @return Builder instance
@@ -402,12 +409,12 @@ public class GaleraClient extends AbstractGaleraDataSource {
          * @param jdbcUrlPrefix should be something like 'jdbc:mysql://'
          * @return Builder instance
          */
-        public Builder jdbcUrlPrefix(@Nullable String jdbcUrlPrefix) {
+        public Builder jdbcUrlPrefix(String jdbcUrlPrefix) {
             this.jdbcUrlPrefix = Optional.fromNullable(jdbcUrlPrefix);
             return this;
         }
 
-        public Builder jdbcUrlSeparator(@Nullable String jdbcUrlSeparator) {
+        public Builder jdbcUrlSeparator(String jdbcUrlSeparator) {
             this.jdbcUrlSeparator = Optional.fromNullable(jdbcUrlSeparator);
             return this;
         }
@@ -455,12 +462,12 @@ public class GaleraClient extends AbstractGaleraDataSource {
             return connectionTimeout(timeUnit.toMillis(connectionTimeout));
         }
 
-        public Builder listener(@Nullable GaleraClientListener galeraClientListener) {
+        public Builder listener(GaleraClientListener galeraClientListener) {
             this.listener = Optional.fromNullable(galeraClientListener);
             return this;
         }
 
-        public Builder nodeSelectionPolicy(@Nullable ElectionNodePolicy defaultPolicy) {
+        public Builder nodeSelectionPolicy(ElectionNodePolicy defaultPolicy) {
             this.nodeSelectionPolicy = Optional.fromNullable(defaultPolicy);
             return this;
         }

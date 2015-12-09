@@ -17,9 +17,10 @@ public class PoolSettings {
     public final ConsistencyLevel consistencyLevel;
 
     private PoolSettings(Builder builder) {
-        Preconditions.checkArgument(builder.maxConnectionsPerHost >= 1, "Max connections per host must be greater or equal than 1. It was: %s", builder.maxConnectionsPerHost);
+        Preconditions.checkArgument(builder.minConnectionsIdlePerHost >= 1, "Min connections per host must be greater or equal than 1. It was: %s",
+                                    builder.minConnectionsIdlePerHost);
 
-        maxConnectionsPerHost = builder.maxConnectionsPerHost;
+        maxConnectionsPerHost = (builder.maxConnectionsPerHost > 0) ? builder.maxConnectionsPerHost : builder.minConnectionsIdlePerHost;
         minConnectionsIdlePerHost = builder.minConnectionsIdlePerHost;
         connectTimeout = builder.connectTimeout;
         connectionTimeout = builder.connectionTimeout;

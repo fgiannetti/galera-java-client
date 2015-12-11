@@ -34,7 +34,6 @@ public class GaleraDB {
                 .add("jdbcUrlSeparator", jdbcUrlSeparator)
                 .add("database", database)
                 .add("user", user)
-                .add("password", password)
                 .toString();
     }
 }

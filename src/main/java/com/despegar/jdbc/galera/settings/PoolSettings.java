@@ -15,6 +15,7 @@ public class PoolSettings {
     public final boolean readOnly;
     public final String isolationLevel;
     public final ConsistencyLevel consistencyLevel;
+    public final boolean metricsEnabled;
 
     private PoolSettings(Builder builder) {
         Preconditions.checkArgument(builder.minConnectionsIdlePerHost >= 1, "Min connections per host must be greater or equal than 1. It was: %s",
@@ -30,6 +31,7 @@ public class PoolSettings {
         readOnly = builder.readOnly;
         isolationLevel = builder.isolationLevel;
         consistencyLevel = builder.consistencyLevel;
+        metricsEnabled = builder.metricsEnabled;
     }
 
     public static Builder newBuilder() {
@@ -64,6 +66,7 @@ public class PoolSettings {
         private boolean readOnly;
         private String isolationLevel;
         private ConsistencyLevel consistencyLevel;
+        private boolean metricsEnabled;
 
         private Builder() {
         }
@@ -119,6 +122,11 @@ public class PoolSettings {
 
         public Builder consistencyLevel(ConsistencyLevel consistencyLevel) {
             this.consistencyLevel = consistencyLevel;
+            return this;
+        }
+
+        public Builder metricsEnabled(boolean enableMetrics) {
+            this.metricsEnabled = enableMetrics;
             return this;
         }
 

@@ -17,6 +17,8 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.despegar.jdbc.galera.utils.PoolNameHelper.*;
+
 public class GaleraNode {
     private static final Logger LOG = LoggerFactory.getLogger(GaleraNode.class);
 
@@ -29,15 +31,17 @@ public class GaleraNode {
     private HikariDataSource statusDataSource;
     private volatile HikariDataSource dataSource;
     private volatile GaleraStatus status;
+    private final boolean testMode;
 
     public GaleraNode(String node, GaleraDB galeraDB, PoolSettings poolSettings, PoolSettings internalPoolSettings, boolean testMode) {
         LOG.info("Creating galera node {}", node);
         this.node = node;
         this.galeraDB = galeraDB;
         this.poolSettings = poolSettings;
+        this.testMode = testMode;
 
         if (!testMode) {
-            HikariConfig hikariConfig = newHikariConfig("hikari-pool-status-" + nodeNameWithoutPort(node), node, galeraDB, internalPoolSettings);
+            HikariConfig hikariConfig = newHikariConfig(STATUS_POOL_PREFIX_NAME + nodeNameWithoutPort(node), node, galeraDB, internalPoolSettings);
             statusDataSource = new HikariDataSource(hikariConfig);
         }
     }
@@ -63,6 +67,10 @@ public class GaleraNode {
         config.addDataSourceProperty("maintainTimeStats", "false");
         config.addDataSourceProperty("connectTimeout", String.valueOf(poolSettings.connectTimeout));
         config.addDataSourceProperty("socketTimeout", String.valueOf(poolSettings.readTimeout));
+
+        if (!this.testMode && poolSettings.metricsEnabled) {
+            config.setMetricRegistry(GaleraClient.metricRegistry);
+        }
 
         return config;
     }
@@ -129,22 +137,12 @@ public class GaleraNode {
         return conn;
     }
 
-    /**
-     * Because of errors when hikari pool name have ':' character, we remove the last part of the node name (:port).
-     *
-     * @param node
-     * @return
-     */
-    private String nodeNameWithoutPort(String node) {
-        return node.split(":")[0];
-    }
-
     public Connection getConnection(ConsistencyLevel consistencyLevel) throws SQLException {
         return GaleraProxyConnection.create(dataSource.getConnection(), consistencyLevel, status);
     }
 
     public void onActivate() {
-        dataSource = new HikariDataSource(newHikariConfig("hikari-pool-" + nodeNameWithoutPort(node), node, galeraDB, poolSettings));
+        dataSource = new HikariDataSource(newHikariConfig(CLIENT_POOL_PREFIX_NAME + nodeNameWithoutPort(node), node, galeraDB, poolSettings));
     }
 
     public PrintWriter getLogWriter() throws SQLException {

@@ -1,5 +1,6 @@
 package com.despegar.jdbc.galera;
 
+import com.codahale.metrics.MetricRegistry;
 import com.despegar.jdbc.galera.consistency.ConsistencyLevel;
 import com.despegar.jdbc.galera.listener.GaleraClientListener;
 import com.despegar.jdbc.galera.listener.GaleraClientLoggingListener;
@@ -8,6 +9,7 @@ import com.despegar.jdbc.galera.policies.RoundRobinPolicy;
 import com.despegar.jdbc.galera.settings.ClientSettings;
 import com.despegar.jdbc.galera.settings.DiscoverSettings;
 import com.despegar.jdbc.galera.settings.PoolSettings;
+import com.despegar.jdbc.galera.utils.PoolMetrics;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
@@ -23,10 +25,12 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class GaleraClient extends AbstractGaleraDataSource {
 
     private static final Logger LOG = LoggerFactory.getLogger(GaleraClient.class);
+    public static MetricRegistry metricRegistry = new MetricRegistry();
 
     protected Map<String, GaleraNode> nodes = new ConcurrentHashMap<String, GaleraNode>();
     private List<String> activeNodes = new CopyOnWriteArrayList<String>();
@@ -37,6 +41,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
     private PoolSettings internalPoolSettings;
     private DiscoverSettings discoverSettings;
     private ClientSettings clientSettings;
+    private AtomicBoolean isDiscoveryRunning = new AtomicBoolean(false);
     private Runnable discoverRunnable = new Runnable() {
         @Override
         public void run() {
@@ -61,6 +66,11 @@ public class GaleraClient extends AbstractGaleraDataSource {
 
     private void discovery() {
 
+        if (!isDiscoveryRunning.compareAndSet(false, true)) {
+            LOG.info("Skipping discovery because it is already running");
+            return;
+        }
+
         if (LOG.isDebugEnabled()) {
             LOG.debug("Discovering Galera cluster...");
         }
@@ -73,6 +83,12 @@ public class GaleraClient extends AbstractGaleraDataSource {
             }
         } catch (Throwable reason) {
             LOG.error("Galera discovery failed", reason);
+        }
+
+        isDiscoveryRunning.compareAndSet(true, false);
+
+        if (!clientSettings.testMode && poolSettings.metricsEnabled) {
+            PoolMetrics.reportMetrics(metricRegistry, nodes.keySet(), clientSettings.galeraClientListener);
         }
 
     }
@@ -237,7 +253,13 @@ public class GaleraClient extends AbstractGaleraDataSource {
 
     @Override
     public Connection getConnection() throws SQLException {
-        return selectNode(null).getConnection();
+        try {
+            return selectNode(null).getConnection();
+        } catch (Exception e) {
+            LOG.info("Error getting connection. Forcing discovery...");
+            discovery();
+            throw e;
+        }
     }
 
     /**
@@ -252,7 +274,13 @@ public class GaleraClient extends AbstractGaleraDataSource {
         if (LOG.isDebugEnabled()) {
             LOG.debug("Getting connection [{}] from node {}", policy.getName(), galeraNode.node);
         }
-        return galeraNode.getConnection(consistencyLevel);
+        try {
+            return galeraNode.getConnection(consistencyLevel);
+        } catch (Exception e) {
+            LOG.info("Error getting connection. Forcing discovery...");
+            discovery();
+            throw e;
+        }
     }
 
     protected GaleraNode selectNode(@Nullable ElectionNodePolicy electionNodePolicy) {
@@ -326,6 +354,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
         private int retriesToGetConnection = 3;
         private boolean autocommit = true; //JDBC default.
         private boolean readOnly = false;
+        private boolean metricsEnabled = false;
         private String isolationLevel = "TRANSACTION_READ_COMMITTED";
         private ConsistencyLevel consistencyLevel;
         private Optional<GaleraClientListener> listener = Optional.absent();
@@ -374,6 +403,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
                     .readOnly(readOnly)
                     .isolationLevel(isolationLevel)
                     .consistencyLevel(consistencyLevel)
+                    .metricsEnabled(metricsEnabled)
                     .build();
 
             PoolSettings internalPoolSettings = PoolSettings.newBuilder()
@@ -386,6 +416,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
                     .autocommit(false)
                     .readOnly()
                     .isolationLevel(isolationLevel)
+                    .metricsEnabled(false)
                     .build();
 
 
@@ -523,6 +554,11 @@ public class GaleraClient extends AbstractGaleraDataSource {
 
         public Builder ignoreDonor(boolean ignore) {
             this.ignoreDonor = ignore;
+            return this;
+        }
+
+        public Builder metricsEnabled(boolean metricsEnabled) {
+            this.metricsEnabled = metricsEnabled;
             return this;
         }
 

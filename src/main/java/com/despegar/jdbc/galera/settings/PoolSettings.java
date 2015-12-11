@@ -2,9 +2,11 @@ package com.despegar.jdbc.galera.settings;
 
 import com.despegar.jdbc.galera.consistency.ConsistencyLevel;
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 
 public class PoolSettings {
+    public final Optional<String> poolName;
     public final int maxConnectionsPerHost;
     public final int minConnectionsIdlePerHost;
     public final long connectTimeout;
@@ -32,6 +34,7 @@ public class PoolSettings {
         isolationLevel = builder.isolationLevel;
         consistencyLevel = builder.consistencyLevel;
         metricsEnabled = builder.metricsEnabled;
+        poolName = builder.poolName;
     }
 
     public static Builder newBuilder() {
@@ -42,6 +45,7 @@ public class PoolSettings {
     public String toString() {
         return MoreObjects.toStringHelper(this)
                 .omitNullValues()
+                .add("poolName", poolName)
                 .add("maxConnectionsPerHost", maxConnectionsPerHost)
                 .add("minConnectionsIdlePerHost", minConnectionsIdlePerHost)
                 .add("connectTimeout", connectTimeout)
@@ -57,6 +61,7 @@ public class PoolSettings {
 
     public static final class Builder {
         private int maxConnectionsPerHost;
+        private Optional<String> poolName;
         private int minConnectionsIdlePerHost;
         private long connectTimeout;
         private long connectionTimeout;
@@ -127,6 +132,11 @@ public class PoolSettings {
 
         public Builder metricsEnabled(boolean enableMetrics) {
             this.metricsEnabled = enableMetrics;
+            return this;
+        }
+
+        public Builder poolName(Optional<String> poolName) {
+            this.poolName = poolName;
             return this;
         }
 

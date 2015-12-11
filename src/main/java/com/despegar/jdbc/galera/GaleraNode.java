@@ -17,7 +17,8 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.despegar.jdbc.galera.utils.PoolNameHelper.*;
+import static com.despegar.jdbc.galera.utils.PoolNameHelper.getFullPoolName;
+import static com.despegar.jdbc.galera.utils.PoolNameHelper.getFullStatusPoolName;
 
 public class GaleraNode {
     private static final Logger LOG = LoggerFactory.getLogger(GaleraNode.class);
@@ -41,7 +42,7 @@ public class GaleraNode {
         this.testMode = testMode;
 
         if (!testMode) {
-            HikariConfig hikariConfig = newHikariConfig(STATUS_POOL_PREFIX_NAME + nodeNameWithoutPort(node), node, galeraDB, internalPoolSettings);
+            HikariConfig hikariConfig = newHikariConfig(getFullStatusPoolName(poolSettings.poolName, node), node, galeraDB, internalPoolSettings);
             statusDataSource = new HikariDataSource(hikariConfig);
         }
     }
@@ -142,7 +143,7 @@ public class GaleraNode {
     }
 
     public void onActivate() {
-        dataSource = new HikariDataSource(newHikariConfig(CLIENT_POOL_PREFIX_NAME + nodeNameWithoutPort(node), node, galeraDB, poolSettings));
+        dataSource = new HikariDataSource(newHikariConfig(getFullPoolName(poolSettings.poolName, node), node, galeraDB, poolSettings));
     }
 
     public PrintWriter getLogWriter() throws SQLException {

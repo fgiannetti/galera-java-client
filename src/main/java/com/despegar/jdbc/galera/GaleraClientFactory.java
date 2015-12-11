@@ -3,6 +3,7 @@ package com.despegar.jdbc.galera;
 import com.despegar.jdbc.galera.consistency.ConsistencyLevel;
 import com.despegar.jdbc.galera.listener.GaleraClientListener;
 import com.despegar.jdbc.galera.policies.ElectionNodePolicy;
+import com.google.common.base.Optional;
 
 public class GaleraClientFactory {
     private boolean testMode;
@@ -28,10 +29,12 @@ public class GaleraClientFactory {
     private GaleraClientListener listener;
     private ElectionNodePolicy nodeSelectionPolicy;
     private boolean metricsEnabled;
+    private Optional<String> poolName = Optional.absent();
 
     public GaleraClient getInstance() {
         return new GaleraClient.Builder().jdbcUrlPrefix(jdbcUrlPrefix).jdbcUrlSeparator(jdbcUrlSeparator).database(database).user(user).password(password)
-                .seeds(seeds).maxConnectionsPerHost(maxConnectionsPerHost).minConnectionsIdlePerHost(minConnectionsIdlePerHost).discoverPeriod(discoverPeriod)
+                .seeds(seeds).poolName(poolName).maxConnectionsPerHost(maxConnectionsPerHost).minConnectionsIdlePerHost(minConnectionsIdlePerHost)
+                .discoverPeriod(discoverPeriod)
                 .connectionTimeout(connectionTimeout).connectTimeout(connectTimeout).readTimeout(readTimeout).idleTimeout(idleTimeout).ignoreDonor(ignoreDonor)
                 .retriesToGetConnection(retriesToGetConnection).autocommit(autocommit).readOnly(readOnly).isolationLevel(isolationLevel)
                 .consistencyLevel(consistencyLevel).listener(listener).nodeSelectionPolicy(nodeSelectionPolicy).testMode(testMode).metricsEnabled(
@@ -128,6 +131,10 @@ public class GaleraClientFactory {
 
     public void setMetricsEnabled(boolean metricsEnabled) {
         this.metricsEnabled = metricsEnabled;
+    }
+
+    public void setPoolName(String poolName) {
+        this.poolName = Optional.fromNullable(poolName);
     }
 
 }

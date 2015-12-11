@@ -88,7 +88,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
         isDiscoveryRunning.compareAndSet(true, false);
 
         if (!clientSettings.testMode && poolSettings.metricsEnabled) {
-            PoolMetrics.reportMetrics(metricRegistry, nodes.keySet(), clientSettings.galeraClientListener);
+            PoolMetrics.reportMetrics(metricRegistry, nodes.keySet(), clientSettings.galeraClientListener, poolSettings.poolName);
         }
 
     }
@@ -359,6 +359,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
         private ConsistencyLevel consistencyLevel;
         private Optional<GaleraClientListener> listener = Optional.absent();
         private Optional<ElectionNodePolicy> nodeSelectionPolicy = Optional.absent();
+        private Optional<String> poolName = Optional.absent();
 
         public GaleraClient build() {
             Preconditions.checkState(seeds != null, "Seeds are required");
@@ -404,6 +405,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
                     .isolationLevel(isolationLevel)
                     .consistencyLevel(consistencyLevel)
                     .metricsEnabled(metricsEnabled)
+                    .poolName(poolName)
                     .build();
 
             PoolSettings internalPoolSettings = PoolSettings.newBuilder()
@@ -417,6 +419,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
                     .readOnly()
                     .isolationLevel(isolationLevel)
                     .metricsEnabled(false)
+                    .poolName(poolName)
                     .build();
 
 
@@ -462,6 +465,11 @@ public class GaleraClient extends AbstractGaleraDataSource {
 
         public Builder password(String password) {
             this.password = password;
+            return this;
+        }
+
+        public Builder poolName(Optional<String> poolName) {
+            this.poolName = poolName;
             return this;
         }
 

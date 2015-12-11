@@ -473,6 +473,11 @@ public class GaleraClient extends AbstractGaleraDataSource {
             return this;
         }
 
+        public Builder poolName(String poolName) {
+            this.poolName = Optional.fromNullable(poolName);
+            return this;
+        }
+
         public Builder maxConnectionsPerHost(int maxConnectionsPerHost) {
             this.maxConnectionsPerHost = maxConnectionsPerHost;
             return this;

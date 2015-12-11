@@ -27,13 +27,15 @@ public class GaleraClientFactory {
     private ConsistencyLevel consistencyLevel;
     private GaleraClientListener listener;
     private ElectionNodePolicy nodeSelectionPolicy;
+    private boolean metricsEnabled;
 
     public GaleraClient getInstance() {
         return new GaleraClient.Builder().jdbcUrlPrefix(jdbcUrlPrefix).jdbcUrlSeparator(jdbcUrlSeparator).database(database).user(user).password(password)
                 .seeds(seeds).maxConnectionsPerHost(maxConnectionsPerHost).minConnectionsIdlePerHost(minConnectionsIdlePerHost).discoverPeriod(discoverPeriod)
                 .connectionTimeout(connectionTimeout).connectTimeout(connectTimeout).readTimeout(readTimeout).idleTimeout(idleTimeout).ignoreDonor(ignoreDonor)
                 .retriesToGetConnection(retriesToGetConnection).autocommit(autocommit).readOnly(readOnly).isolationLevel(isolationLevel)
-                .consistencyLevel(consistencyLevel).listener(listener).nodeSelectionPolicy(nodeSelectionPolicy).testMode(testMode).build();
+                .consistencyLevel(consistencyLevel).listener(listener).nodeSelectionPolicy(nodeSelectionPolicy).testMode(testMode).metricsEnabled(
+                        metricsEnabled).build();
     }
 
     public void setDatabase(String database) {
@@ -123,5 +125,10 @@ public class GaleraClientFactory {
     public void setJdbcUrlSeparator(String jdbcUrlSeparator) {
         this.jdbcUrlSeparator = jdbcUrlSeparator;
     }
+
+    public void setMetricsEnabled(boolean metricsEnabled) {
+        this.metricsEnabled = metricsEnabled;
+    }
+
 }
 

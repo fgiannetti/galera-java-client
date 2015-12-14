@@ -33,7 +33,9 @@ It doesn't implement the mysql protocol or manage jdbc connections by itself. It
     * CAUSAL_READS_OFF
     * CAUSAL_READS_ON
 
-* **GaleraClientListener:** You can extend functionality, for example to report some metrics, setting on the client builder an implementation of GaleraClientListener, which has callbacks for the following events: activating/removing node, marking node as down and selecting a new master node. The default implementation just logs this events.       
+* **GaleraClientListener:** You can extend functionality, for example to report some metrics, setting on the client builder an implementation of GaleraClientListener, which has callbacks for the following events: activating/removing node, marking node as down, selecting a new master node and reporting metrics. The default implementation just logs this events.       
+
+* **Metrics:** You can get metrics from pool (total / active / idle / pending connections & percentile 95 of waiting / usage time) each time a discovery occurs. You must configure metricsEnabled on galera client. Remember that the default listener only logs the metrics.   
 
 * **ElectionNodePolicy:** You can configure `com.despegar.jdbc.galera.policies.RoundRobinPolicy` (which is the default) or `com.despegar.jdbc.galera.policies.MasterSortingNodesPolicy`. You can also provide a custom election node policy only with supplying a fully qualified name of the implementation of `com.despegar.jdbc.galera.policies.ElectionNodePolicy`. This policy will be used each time you invoke getConnection() in order to select a node and get a connection from it. There is another method, getConnection(..., ElectionNodePolicy) that let you to specify a different election node policy than the default one. 
 
@@ -55,6 +57,7 @@ It doesn't implement the mysql protocol or manage jdbc connections by itself. It
 
 ```java
   GaleraClient client = new GaleraClient.Builder()
+                            .poolName("testPool")
                             .seeds("maria-1, maria-2")
                             .database("myDatabase")
                             .user("user")
@@ -87,8 +90,8 @@ The `connection.close()` returns the connection to the pool and `client.shutdown
 
 ## Implementation details
 
-  * mariadb-client 1.1.7
-  * HikariCP 2.3.5
+  * mariadb-java-client 1.3.2
+  * HikariCP 2.4.3
 
 ## Contributions
 

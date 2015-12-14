@@ -124,7 +124,7 @@ public class GaleraNode {
 
     public void shutdown() {
         onDown();
-        if (statusDataSource != null) { statusDataSource.shutdown(); }
+        if (statusDataSource != null) { statusDataSource.close(); }
     }
 
     public Connection getConnection() throws SQLException {
@@ -157,7 +157,7 @@ public class GaleraNode {
     public void onDown() {
         if (dataSource != null) {
             LOG.info("Closing all connections on node " + node);
-            dataSource.shutdown();
+            dataSource.close();
             dataSource = null;
         }
     }

@@ -24,11 +24,11 @@ public class GaleraClientLoggingListener implements GaleraClientListener {
         LOG.info("Removing galera node: {}", node);
     }
 
-    public void onDiscoveryPoolMetrics(String poolName, HikariMetrics hikariMetrics, Optional<Integer> threadsConnected) {
+    public void onDiscoveryPoolMetrics(String nodeName, String poolName, HikariMetrics hikariMetrics, Optional<Integer> threadsConnected) {
         LOG.info(
-                "Metrics for pool '{}' ---> TimeWaitingForConnection (p95): {}, Usage time (p95): {}, Total connections: {}, Idle connections: {}, " +
+                "Metrics for node {}, pool '{}' ---> TimeWaitingForConnection (p95): {}, Usage time (p95): {}, Total connections: {}, Idle connections: {}, " +
                         "Active connections: {}, Pending connections: {}, Threads connected: {}",
-                poolName, hikariMetrics.getWaitPercentile95().orNull(), hikariMetrics.getUsagePercentile95().orNull(),
+                nodeName, poolName, hikariMetrics.getWaitPercentile95().orNull(), hikariMetrics.getUsagePercentile95().orNull(),
                 hikariMetrics.getTotalConnections().orNull(), hikariMetrics.getIdleConnections().orNull(), hikariMetrics.getActiveConnections().orNull(),
                 hikariMetrics.getWaitingForConnections().orNull(), threadsConnected.orNull()
         );

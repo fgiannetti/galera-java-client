@@ -47,7 +47,7 @@ It doesn't implement the mysql protocol or manage jdbc connections by itself. It
 <dependency>
     <groupId>com.despegar</groupId>
     <artifactId>galera-java-client</artifactId>
-    <version>1.0.14</version>
+    <version>1.0.15</version>
 </dependency>
 ```
 

@@ -1,7 +1,7 @@
 Change log
 ======
 
-## 1.0.14 (2015-12-16)
+## 1.0.15 (2015-12-16)
 
  *  Exposing metric from underlying database: Threads connected
 

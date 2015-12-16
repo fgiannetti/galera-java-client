@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.SortedMap;
 
 import static com.despegar.jdbc.galera.utils.PoolNameHelper.getFullPoolName;
+import static com.despegar.jdbc.galera.utils.PoolNameHelper.nodeNameWithoutPort;
 
 public class PoolMetrics {
     private static final Logger LOG = LoggerFactory.getLogger(PoolMetrics.class);
@@ -43,7 +44,7 @@ public class PoolMetrics {
 
             Optional<Integer> threadsConnected = getThreadsConnected(nodes.get(nodeName));
 
-            listener.onDiscoveryPoolMetrics(poolFullName, hikariMetrics, threadsConnected);
+            listener.onDiscoveryPoolMetrics(nodeNameWithoutPort(nodeName), poolFullName, hikariMetrics, threadsConnected);
         }
     }
 

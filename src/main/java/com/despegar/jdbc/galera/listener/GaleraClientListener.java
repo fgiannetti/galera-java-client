@@ -16,6 +16,6 @@ public interface GaleraClientListener {
      * @param hikariMetrics    Internal counter and metrics from hikari cp
      * @param threadsConnected Connections open to the underlying database.
      */
-    void onDiscoveryPoolMetrics(String poolName, HikariMetrics hikariMetrics, Optional<Integer> threadsConnected);
+    void onDiscoveryPoolMetrics(String nodeName, String poolName, HikariMetrics hikariMetrics, Optional<Integer> threadsConnected);
 
 }

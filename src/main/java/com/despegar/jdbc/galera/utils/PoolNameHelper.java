@@ -11,7 +11,6 @@ public class PoolNameHelper {
      * Because of errors when hikari pool name have ':' character, we remove the last part of the node name (:port).
      *
      * @param node it has the following pattern "host:port"
-     * @return
      */
     public static String nodeNameWithoutPort(String node) {
         return node.split(":")[0];

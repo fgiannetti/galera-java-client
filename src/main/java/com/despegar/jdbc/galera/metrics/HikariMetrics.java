@@ -4,13 +4,12 @@ import com.google.common.base.Optional;
 
 /**
  * HikariCP exposes the following metrics:
- * <p/>
- * waitPercentile95      It shows how long requesting threads to getConnection() are waiting for a connection (or timeout exception) from the pool.
- * usagePercentile95     It shows how long each connection is used before being returned to the pool. This is the "out of pool" or "in-use" time.
- * totalConnections      This value indicates the total number of connections in the pool.
- * idleConnections       This value indicates the number of idle connections in the pool.
- * activeConnections     This value indicates the number of the number of active (in - use) connections in the pool.
- * waitingForConnections This value indicates the number of threads awaiting connections from the pool.
+ * 1) waitPercentile95      It shows how long requesting threads to getConnection() are waiting for a connection (or timeout exception) from the pool.
+ * 2) usagePercentile95     It shows how long each connection is used before being returned to the pool. This is the "out of pool" or "in-use" time.
+ * 3) totalConnections      This value indicates the total number of connections in the pool.
+ * 4) idleConnections       This value indicates the number of idle connections in the pool.
+ * 5) activeConnections     This value indicates the number of the number of active (in - use) connections in the pool.
+ * 6) waitingForConnections This value indicates the number of threads awaiting connections from the pool.
  */
 public class HikariMetrics {
 

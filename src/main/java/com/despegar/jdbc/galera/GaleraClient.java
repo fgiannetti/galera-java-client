@@ -4,12 +4,12 @@ import com.codahale.metrics.MetricRegistry;
 import com.despegar.jdbc.galera.consistency.ConsistencyLevel;
 import com.despegar.jdbc.galera.listener.GaleraClientListener;
 import com.despegar.jdbc.galera.listener.GaleraClientLoggingListener;
+import com.despegar.jdbc.galera.metrics.PoolMetrics;
 import com.despegar.jdbc.galera.policies.ElectionNodePolicy;
 import com.despegar.jdbc.galera.policies.RoundRobinPolicy;
 import com.despegar.jdbc.galera.settings.ClientSettings;
 import com.despegar.jdbc.galera.settings.DiscoverSettings;
 import com.despegar.jdbc.galera.settings.PoolSettings;
-import com.despegar.jdbc.galera.utils.PoolMetrics;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
@@ -88,7 +88,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
         isDiscoveryRunning.compareAndSet(true, false);
 
         if (!clientSettings.testMode && poolSettings.metricsEnabled) {
-            PoolMetrics.reportMetrics(metricRegistry, nodes.keySet(), clientSettings.galeraClientListener, poolSettings.poolName);
+            PoolMetrics.reportMetrics(metricRegistry, nodes, clientSettings.galeraClientListener, poolSettings.poolName);
         }
 
     }

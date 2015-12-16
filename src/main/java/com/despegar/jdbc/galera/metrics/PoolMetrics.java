@@ -1,15 +1,16 @@
-package com.despegar.jdbc.galera.utils;
+package com.despegar.jdbc.galera.metrics;
 
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
+import com.despegar.jdbc.galera.GaleraNode;
 import com.despegar.jdbc.galera.listener.GaleraClientListener;
 import com.google.common.base.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Set;
+import java.util.Map;
 import java.util.SortedMap;
 
 import static com.despegar.jdbc.galera.utils.PoolNameHelper.getFullPoolName;
@@ -24,24 +25,36 @@ public class PoolMetrics {
     public static final String METRIC_NAME_ACTIVE_CONN = ".pool.ActiveConnections";
     public static final String METRIC_NAME_PENDING_CONN = ".pool.PendingConnections";
 
-    public static void reportMetrics(MetricRegistry metricRegistry, Set<String> nodes, GaleraClientListener listener, Optional<String> poolName) {
+    public static void reportMetrics(MetricRegistry metricRegistry, Map<String, GaleraNode> nodes, GaleraClientListener listener, Optional<String> poolName) {
         if (metricRegistry == null || nodes == null) {
             return;
         }
 
-        for (String nodeName : nodes) {
+        for (String nodeName : nodes.keySet()) {
             final String poolFullName = getFullPoolName(poolName, nodeName);
 
-            Optional<Double> waitPercentile95 = getTimerPercentile95(metricRegistry, poolFullName + METRIC_NAME_POOL_WAIT);
-            Optional<Double> usagePercentile95 = getHistogramPercentile95(metricRegistry, poolFullName + METRIC_NAME_POOL_USAGE);
-            Optional<Integer> totalConnections = getGaugeValue(metricRegistry, poolFullName + METRIC_NAME_TOTAL_CONN);
-            Optional<Integer> idleConnections = getGaugeValue(metricRegistry, poolFullName + METRIC_NAME_IDLE_CONN);
-            Optional<Integer> activeConnections = getGaugeValue(metricRegistry, poolFullName + METRIC_NAME_ACTIVE_CONN);
-            Optional<Integer> waitingForConnections = getGaugeValue(metricRegistry, poolFullName + METRIC_NAME_PENDING_CONN);
+            HikariMetrics hikariMetrics = HikariMetrics.newBuilder()
+                    .waitPercentile95(getTimerPercentile95(metricRegistry, poolFullName + METRIC_NAME_POOL_WAIT))
+                    .usagePercentile95(getHistogramPercentile95(metricRegistry, poolFullName + METRIC_NAME_POOL_USAGE))
+                    .totalConnections(getGaugeValue(metricRegistry, poolFullName + METRIC_NAME_TOTAL_CONN))
+                    .idleConnections(getGaugeValue(metricRegistry, poolFullName + METRIC_NAME_IDLE_CONN))
+                    .activeConnections(getGaugeValue(metricRegistry, poolFullName + METRIC_NAME_ACTIVE_CONN))
+                    .waitingForConnections(getGaugeValue(metricRegistry, poolFullName + METRIC_NAME_PENDING_CONN)).build();
 
-            listener.onDiscoveryPoolMetrics(poolFullName, waitPercentile95, usagePercentile95, totalConnections, idleConnections, activeConnections,
-                                            waitingForConnections);
+            Optional<Integer> threadsConnected = getThreadsConnected(nodes.get(nodeName));
+
+            listener.onDiscoveryPoolMetrics(poolFullName, hikariMetrics, threadsConnected);
         }
+    }
+
+    private static Optional<Integer> getThreadsConnected(GaleraNode galeraNode) {
+        Optional<Integer> threadsConnected = Optional.absent();
+        try {
+            threadsConnected = Optional.fromNullable(galeraNode.status().threadsConnectedCount());
+        } catch (Exception e) {
+            LOG.warn("Error getting threadsConnected metric", e);
+        }
+        return threadsConnected;
     }
 
     private static Optional<Integer> getGaugeValue(MetricRegistry metricRegistry, String metricName) {

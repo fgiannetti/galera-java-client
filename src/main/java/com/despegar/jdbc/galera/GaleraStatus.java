@@ -17,6 +17,8 @@ public class GaleraStatus {
     private static final String STATUS_SYNCED = "Synced";
     private static final String STATE_VARIABLE = "wsrep_local_state_comment";
 
+    private static final String THREADS_CONNECTED = "Threads_connected";
+
     private final Map<String, String> statusMap;
 
     public GaleraStatus(Map<String, String> statusMap) {
@@ -45,6 +47,10 @@ public class GaleraStatus {
 
     public boolean supportsSyncWait() {
         return statusMap.keySet().contains(SYNC_WAIT_VARIABLE);
+    }
+
+    public Integer threadsConnectedCount() {
+        return Integer.valueOf(statusMap.get(THREADS_CONNECTED));
     }
 
     public String getGlobalConsistencyLevel() {

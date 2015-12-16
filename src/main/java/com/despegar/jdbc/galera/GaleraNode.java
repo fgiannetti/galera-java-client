@@ -23,7 +23,7 @@ import static com.despegar.jdbc.galera.utils.PoolNameHelper.getFullStatusPoolNam
 public class GaleraNode {
     private static final Logger LOG = LoggerFactory.getLogger(GaleraNode.class);
 
-    private static final String QUERY_STATUS = "SHOW STATUS LIKE 'wsrep_%'";
+    private static final String QUERY_STATUS = "SHOW STATUS where variable_name LIKE 'wsrep_%' or variable_name like 'Threads_connected'; ";
     private static final String QUERY_GLOBAL_VARIABLES = "SHOW GLOBAL VARIABLES WHERE variable_name in ('wsrep_sync_wait', 'wsrep_causal_reads');";
 
     public final String node;

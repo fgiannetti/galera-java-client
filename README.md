@@ -35,7 +35,7 @@ It doesn't implement the mysql protocol or manage jdbc connections by itself. It
 
 * **GaleraClientListener:** You can extend functionality, for example to report some metrics, setting on the client builder an implementation of GaleraClientListener, which has callbacks for the following events: activating/removing node, marking node as down, selecting a new master node and reporting metrics. The default implementation just logs this events.       
 
-* **Metrics:** You can get metrics from pool (total / active / idle / pending connections & percentile 95 of waiting / usage time) each time a discovery occurs. You must configure metricsEnabled on galera client. Remember that the default listener only logs the metrics.   
+* **Metrics:** You can get metrics from Hikari pool (total / active / idle / pending connections & percentile 95 of waiting / usage time) and from de underlying database (threads connected) each time a discovery occurs. You must configure metricsEnabled on galera client. Remember that the default listener only logs the metrics.   
 
 * **ElectionNodePolicy:** You can configure `com.despegar.jdbc.galera.policies.RoundRobinPolicy` (which is the default) or `com.despegar.jdbc.galera.policies.MasterSortingNodesPolicy`. You can also provide a custom election node policy only with supplying a fully qualified name of the implementation of `com.despegar.jdbc.galera.policies.ElectionNodePolicy`. This policy will be used each time you invoke getConnection() in order to select a node and get a connection from it. There is another method, getConnection(..., ElectionNodePolicy) that let you to specify a different election node policy than the default one. 
 
@@ -47,7 +47,7 @@ It doesn't implement the mysql protocol or manage jdbc connections by itself. It
 <dependency>
     <groupId>com.despegar</groupId>
     <artifactId>galera-java-client</artifactId>
-    <version>1.0</version>
+    <version>1.0.14</version>
 </dependency>
 ```
 

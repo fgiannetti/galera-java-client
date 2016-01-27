@@ -313,7 +313,27 @@ public class GaleraClient extends AbstractGaleraDataSource {
 
     public void shutdown() {
         LOG.info("Shutting down Galera Client...");
-        scheduler.shutdown();
+
+        shutdownDiscoverScheduler();
+        shutdownActiveNodes();
+    }
+
+    private void shutdownActiveNodes() {
+        try {
+            for (String activeNode : activeNodes) {
+                shutdownGaleraNode(activeNode);
+            }
+        } catch (Exception e) {
+            LOG.warn("Error closing active node pools", e);
+        }
+    }
+
+    private void shutdownDiscoverScheduler() {
+        try {
+            scheduler.shutdown();
+        } catch (Exception e) {
+            LOG.warn("Error closing status scheduler", e);
+        }
     }
 
     @Override

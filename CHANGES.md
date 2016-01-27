@@ -1,6 +1,10 @@
 Change log
 ======
 
+## 1.0.16 (2016-01-27)
+
+ *  Closing active node connection pools while shutting down Galera Client
+
 ## 1.0.15 (2015-12-16)
 
  *  Exposing metric from underlying database: Threads connected

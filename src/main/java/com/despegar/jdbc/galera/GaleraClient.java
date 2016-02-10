@@ -71,6 +71,12 @@ public class GaleraClient extends AbstractGaleraDataSource {
             return;
         }
 
+        if (nodes.isEmpty()) {
+            //This should only happen if all nodes on cluster went down. Reinitializing with seeds
+            LOG.info("Reinitializing from seeds. Did all nodes go down?");
+            registerNodes(clientSettings.seeds);
+        }
+
         if (LOG.isDebugEnabled()) {
             LOG.debug("Discovering Galera cluster...");
         }
@@ -173,14 +179,14 @@ public class GaleraClient extends AbstractGaleraDataSource {
 
     private void discover(String node) throws Exception {
         LOG.trace("Discovering {}...", node);
-        GaleraNode galeraNode = nodes.get(node);
 
-        GaleraStatus status;
-        if (clientSettings.testMode) {
-            status = GaleraStatus.buildTestStatusOk(node);
-        } else {
-            galeraNode.refreshStatus();
-            status = galeraNode.status();
+        GaleraStatus status = null;
+        try {
+            status = refreshStatus(node);
+        } catch (Exception e) {
+            LOG.error("We could not refresh node status for {} so we remove it", node);
+            removeNode(node);
+            return;
         }
 
         if (!status.isPrimary()) {
@@ -216,6 +222,16 @@ public class GaleraClient extends AbstractGaleraDataSource {
                 activate(node);
             }
         }
+    }
+
+    private GaleraStatus refreshStatus(String node) throws Exception {
+        if (clientSettings.testMode) {
+            return GaleraStatus.buildTestStatusOk(node);
+        }
+
+        GaleraNode galeraNode = nodes.get(node);
+        galeraNode.refreshStatus();
+        return galeraNode.status();
     }
 
     private boolean isActive(String node) {

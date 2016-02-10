@@ -1,5 +1,7 @@
 Change log
 ======
+## 1.0.17 (2016-02-10)
+ * FIX: Do not retry connecting forever when a node dies (we can not get its status)
 
 ## 1.0.16 (2016-01-27)
 

@@ -1,5 +1,9 @@
 Change log
 ======
+
+## 1.0.18 (2016-02-26)
+ * Adding a getConnection method with only nodeSelectionPolicy as argument
+
 ## 1.0.17 (2016-02-10)
  * FIX: Do not retry connecting forever when a node dies (we can not get its status)
 

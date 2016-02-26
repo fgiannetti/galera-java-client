@@ -7,7 +7,7 @@
 	<groupId>com.despegar</groupId>
 	<artifactId>galera-java-client</artifactId>
 	<packaging>jar</packaging>
-	<version>1.0.17</version>
+	<version>1.0.18</version>
 
 	<name>galera-java-client</name>
 	<url>https://github.com/despegar/galera-java-client</url>

@@ -279,6 +279,15 @@ public class GaleraClient extends AbstractGaleraDataSource {
     }
 
     /**
+     * @param electionNodePolicy Policy to choose the node that will get a connection. If it is null, we will use the default policy configured on client.
+     * @return a {@link Connection}
+     * @throws SQLException - if a database access error occurs
+     */
+    public Connection getConnection(ElectionNodePolicy electionNodePolicy) throws SQLException {
+        return getConnection(null, electionNodePolicy);
+    }
+
+    /**
      * @param consistencyLevel   Set the consistencyLevel needed.
      * @param electionNodePolicy Policy to choose the node that will get a connection. If it is null, we will use the default policy configured on client.
      * @return a {@link Connection}
@@ -291,7 +300,12 @@ public class GaleraClient extends AbstractGaleraDataSource {
             LOG.debug("Getting connection [{}] from node {}", policy.getName(), galeraNode.node);
         }
         try {
-            return galeraNode.getConnection(consistencyLevel);
+            if (consistencyLevel != null) {
+                return galeraNode.getConnection(consistencyLevel);
+            } else {
+                return galeraNode.getConnection();
+            }
+
         } catch (Exception e) {
             LOG.info("Error getting connection. Forcing discovery...");
             discovery();

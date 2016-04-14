@@ -12,10 +12,6 @@ The client has a load balance policy to distribute connection requests, it disco
 It doesn't implement the mysql protocol or manage jdbc connections by itself. It relies on mariadb-java-client to open connections and HikariCP to manage the connection pools against the MariaDB/Percona nodes.
 
 
-## Status
-
-`galera-java-client` is in an early stage of development. It is not recommended to be used in production yet.
-
 ## Features
 
 * **Ignoring donor nodes:** Configure this flag with `new GaleraClient.Builder().ignoreDonor(true)`. When this flag is enabled, donor nodes are marked as down, so you will not get connections from donor nodes. Default value: true

@@ -184,7 +184,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
         try {
             status = refreshStatus(node);
         } catch (Exception e) {
-            LOG.error("We could not refresh node status for {} so we remove it", node);
+            LOG.error("We could not refresh node status for " + node + " so we remove it", e);
             removeNode(node);
             return;
         }

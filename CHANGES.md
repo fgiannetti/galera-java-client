@@ -1,5 +1,8 @@
 Change log
 ======
+^M
+## 1.0.19 (2016-09-16)^M
+ * Log improvement
 
 ## 1.0.18 (2016-02-26)
  * Adding a getConnection method with only nodeSelectionPolicy as argument

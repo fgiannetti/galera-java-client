@@ -84,6 +84,12 @@ The `connection.close()` returns the connection to the pool and `client.shutdown
 
 #### For a more complete example, see [CausalReadsTest].
 
+## Deployment
+
+mvn clean deploy
+
+The new artifact will be on https://oss.sonatype.org/content/repositories/releases/com/despegar/galera-java-client/
+
 ## Implementation details
 
   * mariadb-java-client 1.3.2

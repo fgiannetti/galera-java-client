@@ -61,6 +61,7 @@ public class GaleraNode {
         config.setReadOnly(poolSettings.readOnly);
         config.setTransactionIsolation(poolSettings.isolationLevel);
         config.setInitializationFailFast(false);
+        config.setLeakDetectionThreshold(poolSettings.leakDetectionThreshold);
         config.addDataSourceProperty("cachePrepStmts", "true");
         config.addDataSourceProperty("prepStmtCacheSize", "250");
         config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");

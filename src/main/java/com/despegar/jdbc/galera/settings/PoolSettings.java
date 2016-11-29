@@ -18,6 +18,7 @@ public class PoolSettings {
     public final String isolationLevel;
     public final ConsistencyLevel consistencyLevel;
     public final boolean metricsEnabled;
+    public final long leakDetectionThreshold;
 
     private PoolSettings(Builder builder) {
         Preconditions.checkArgument(builder.minConnectionsIdlePerHost >= 1, "Min connections per host must be greater or equal than 1. It was: %s",
@@ -35,6 +36,7 @@ public class PoolSettings {
         consistencyLevel = builder.consistencyLevel;
         metricsEnabled = builder.metricsEnabled;
         poolName = builder.poolName;
+        leakDetectionThreshold = builder.leakDetectionThreshold;
     }
 
     public static Builder newBuilder() {
@@ -56,6 +58,7 @@ public class PoolSettings {
                 .add("readOnly", readOnly)
                 .add("isolationLevel", isolationLevel)
                 .add("consistencyLevel", consistencyLevel)
+                .add("leakDetectionThreshold", leakDetectionThreshold)
                 .toString();
     }
 
@@ -72,6 +75,7 @@ public class PoolSettings {
         private String isolationLevel;
         private ConsistencyLevel consistencyLevel;
         private boolean metricsEnabled;
+        private long leakDetectionThreshold;
 
         private Builder() {
         }
@@ -137,6 +141,11 @@ public class PoolSettings {
 
         public Builder poolName(Optional<String> poolName) {
             this.poolName = poolName;
+            return this;
+        }
+
+        public Builder leakDetectionThreshold(long leakDetectionThreshold) {
+            this.leakDetectionThreshold = leakDetectionThreshold;
             return this;
         }
 

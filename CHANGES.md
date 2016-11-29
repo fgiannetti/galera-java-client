@@ -1,13 +1,20 @@
 Change log
 ======
-^M
-## 1.0.19 (2016-09-16)^M
+
+## 1.0.20 (2016-11-29)
+
+ * Adding leakDetectionThreshold config
+
+## 1.0.19 (2016-09-16)
+
  * Log improvement
 
 ## 1.0.18 (2016-02-26)
+
  * Adding a getConnection method with only nodeSelectionPolicy as argument
 
 ## 1.0.17 (2016-02-10)
+
  * FIX: Do not retry connecting forever when a node dies (we can not get its status)
 
 ## 1.0.16 (2016-01-27)

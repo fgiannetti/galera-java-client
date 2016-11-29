@@ -410,6 +410,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
         private Optional<GaleraClientListener> listener = Optional.absent();
         private Optional<ElectionNodePolicy> nodeSelectionPolicy = Optional.absent();
         private Optional<String> poolName = Optional.absent();
+        private long leakDetectionThreshold = 0;
 
         public GaleraClient build() {
             Preconditions.checkState(seeds != null, "Seeds are required");
@@ -456,6 +457,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
                     .consistencyLevel(consistencyLevel)
                     .metricsEnabled(metricsEnabled)
                     .poolName(poolName)
+                    .leakDetectionThreshold(leakDetectionThreshold)
                     .build();
 
             PoolSettings internalPoolSettings = PoolSettings.newBuilder()
@@ -470,6 +472,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
                     .isolationLevel(isolationLevel)
                     .metricsEnabled(false)
                     .poolName(poolName)
+                    .leakDetectionThreshold(leakDetectionThreshold)
                     .build();
 
 
@@ -632,6 +635,11 @@ public class GaleraClient extends AbstractGaleraDataSource {
 
         public Builder readTimeout(long timeout, @Nonnull TimeUnit timeUnit) {
             return readTimeout(timeUnit.toMillis(timeout));
+        }
+
+        public Builder leakDetectionThreshold(long leakDetectionThreshold) {
+            this.leakDetectionThreshold = leakDetectionThreshold;
+            return this;
         }
     }
 }

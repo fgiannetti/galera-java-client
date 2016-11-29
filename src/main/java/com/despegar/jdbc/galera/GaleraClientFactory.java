@@ -30,6 +30,7 @@ public class GaleraClientFactory {
     private ElectionNodePolicy nodeSelectionPolicy;
     private boolean metricsEnabled;
     private Optional<String> poolName = Optional.absent();
+    private long leakDetectionThreshold = 0;
 
     public GaleraClient getInstance() {
         return new GaleraClient.Builder().jdbcUrlPrefix(jdbcUrlPrefix).jdbcUrlSeparator(jdbcUrlSeparator).database(database).user(user).password(password)
@@ -38,7 +39,7 @@ public class GaleraClientFactory {
                 .connectionTimeout(connectionTimeout).connectTimeout(connectTimeout).readTimeout(readTimeout).idleTimeout(idleTimeout).ignoreDonor(ignoreDonor)
                 .retriesToGetConnection(retriesToGetConnection).autocommit(autocommit).readOnly(readOnly).isolationLevel(isolationLevel)
                 .consistencyLevel(consistencyLevel).listener(listener).nodeSelectionPolicy(nodeSelectionPolicy).testMode(testMode).metricsEnabled(
-                        metricsEnabled).build();
+                        metricsEnabled).leakDetectionThreshold(leakDetectionThreshold).build();
     }
 
     public void setDatabase(String database) {
@@ -135,6 +136,10 @@ public class GaleraClientFactory {
 
     public void setPoolName(String poolName) {
         this.poolName = Optional.fromNullable(poolName);
+    }
+
+    public void setLeakDetectionThreshold(long leakDetectionThreshold) {
+        this.leakDetectionThreshold = leakDetectionThreshold;
     }
 
 }

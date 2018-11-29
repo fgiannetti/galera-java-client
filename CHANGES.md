@@ -1,6 +1,10 @@
 Change log
 ======
 
+## 1.0.21 (2018-11-29)
+
+ * Adding optional JDBC driver class name on config
+
 ## 1.0.20 (2016-11-29)
 
  * Adding leakDetectionThreshold config

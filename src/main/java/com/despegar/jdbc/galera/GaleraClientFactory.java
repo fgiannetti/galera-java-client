@@ -13,6 +13,7 @@ public class GaleraClientFactory {
     private String jdbcUrlPrefix;
     private String jdbcUrlSeparator;
     private String seeds;
+    private String driverClassName;
     private int maxConnectionsPerHost;
     private int minConnectionsIdlePerHost;
     private long discoverPeriod;
@@ -39,7 +40,7 @@ public class GaleraClientFactory {
                 .connectionTimeout(connectionTimeout).connectTimeout(connectTimeout).readTimeout(readTimeout).idleTimeout(idleTimeout).ignoreDonor(ignoreDonor)
                 .retriesToGetConnection(retriesToGetConnection).autocommit(autocommit).readOnly(readOnly).isolationLevel(isolationLevel)
                 .consistencyLevel(consistencyLevel).listener(listener).nodeSelectionPolicy(nodeSelectionPolicy).testMode(testMode).metricsEnabled(
-                        metricsEnabled).leakDetectionThreshold(leakDetectionThreshold).build();
+                        metricsEnabled).leakDetectionThreshold(leakDetectionThreshold).driverClassName(driverClassName).build();
     }
 
     public void setDatabase(String database) {
@@ -140,6 +141,10 @@ public class GaleraClientFactory {
 
     public void setLeakDetectionThreshold(long leakDetectionThreshold) {
         this.leakDetectionThreshold = leakDetectionThreshold;
+    }
+
+    public void setDriverClassName(String driverClassName) {
+        this.driverClassName = driverClassName;
     }
 
 }

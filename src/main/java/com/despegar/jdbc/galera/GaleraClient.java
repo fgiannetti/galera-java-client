@@ -392,6 +392,7 @@ public class GaleraClient extends AbstractGaleraDataSource {
         private String password = "";
         private Optional<String> jdbcUrlPrefix = Optional.absent();
         private Optional<String> jdbcUrlSeparator = Optional.absent();
+        private Optional<String> driverClassName = Optional.absent();
         private String seeds;
         private int maxConnectionsPerHost;
         private int minConnectionsIdlePerHost = 1;
@@ -438,7 +439,8 @@ public class GaleraClient extends AbstractGaleraDataSource {
 
             GaleraDB galeraDB = new GaleraDB(database, user, password,
                     jdbcUrlPrefix.or(GaleraDB.MYSQL_URL_PREFIX),
-                    jdbcUrlSeparator.or(GaleraDB.MYSQL_URL_SEPARATOR));
+                    jdbcUrlSeparator.or(GaleraDB.MYSQL_URL_SEPARATOR),
+                    driverClassName);
 
             if (LOG.isDebugEnabled()) {
                 LOG.debug("Creating galera client with connection settings: {}", galeraDB);
@@ -503,6 +505,11 @@ public class GaleraClient extends AbstractGaleraDataSource {
 
         public Builder jdbcUrlSeparator(String jdbcUrlSeparator) {
             this.jdbcUrlSeparator = Optional.fromNullable(jdbcUrlSeparator);
+            return this;
+        }
+
+        public Builder driverClassName(String driverClassName) {
+            this.driverClassName = Optional.fromNullable(driverClassName);
             return this;
         }
 

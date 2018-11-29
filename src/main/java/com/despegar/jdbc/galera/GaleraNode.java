@@ -74,6 +74,10 @@ public class GaleraNode {
             config.setMetricRegistry(GaleraClient.metricRegistry);
         }
 
+        if(galeraDB.driverClassName.isPresent()){
+            config.setDriverClassName(galeraDB.driverClassName.get());
+        }
+
         return config;
     }
 

@@ -64,6 +64,9 @@ It doesn't implement the mysql protocol or manage jdbc connections by itself. It
                             .build();
   
 ```
+
+**NOTE**: In some systems if the driver classname is not set, a NoActiveNodeException is thrown. To avoid it use the driverClassName() method on Builder
+
 There are few more options for configuration, you can check these in the [source code].
 
 #### 2) Getting a Connection
